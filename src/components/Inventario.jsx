@@ -23,13 +23,13 @@ export default function Inventario({ prendas, setPrendas }) {
 
   const formBase = {
     codigo: "", descripcion: "", sku: "", stockMinimo: "1",
-    costoCompra: "", precioVenta: "", categoria: "Blusa", imagen: "", imagenes: [],
-    tallas: { "XS": "", "S": "", "M": "", "L": "", "XL": "", "0XL": "", "1XL": "", "2XL": "", "3XL": "", "4XL": "", "5XL": "" }
+    costoCompra: "", precioVenta: "", categoria: "Labial", imagen: "", imagenes: [],
+    tallas: { "Única": "", "Mini": "", "Regular": "", "Grande": "", "Duo": "", "Kit": "" }
   };
   const [form, setForm] = useState(formBase);
 
-  const ordenTallas = ["XS", "S", "M", "L", "XL", "0XL", "1XL", "2XL", "3XL", "4XL", "5XL"];
-  const categorias = ["Blusa", "Camiseta", "Pantalón", "Vestido", "Conjunto", "Falda", "Cardigan", "Short", "Otro"];
+  const ordenTallas = ["Única", "Mini", "Regular", "Grande", "Duo", "Kit"];
+  const categorias = ["Labial", "Base", "Corrector", "Iluminador", "Sombra", "Rubor", "Bronzer", "Delineador", "Máscara", "Crema", "Suero", "Perfume", "Esmalte", "Otro"];
 
   const filtradas = useMemo(() => {
     const hoy = new Date();
@@ -139,7 +139,7 @@ export default function Inventario({ prendas, setPrendas }) {
         tieneTallas = true;
       }
     });
-    if (!tieneTallas) return showToast("⚠️ Ingresa el stock de al menos una talla", "warn");
+    if (!tieneTallas) return showToast("⚠️ Ingresa el stock de al menos una presentación", "warn");
 
     const codigoFinal = editandoId ? form.codigo : generarCodigo(form.categoria);
     const cNum = Number(form.costoCompra) || 0;
@@ -173,13 +173,13 @@ export default function Inventario({ prendas, setPrendas }) {
         ];
         await updateDoc(doc(db, "prendas", editandoId), datosGuardar);
         setPrendas(p => p.map(pr => pr.id === editandoId ? { id: editandoId, ...datosGuardar } : pr));
-        showToast("✅ Prenda actualizada");
+        showToast("✅ Producto actualizado");
       } else {
         datosGuardar.fechaIngreso = new Date().toISOString();
         datosGuardar.historial = [{ fecha: datosGuardar.fechaIngreso, tipo: "ingreso", tallas: stockPorTallaObj, costoCompra: cNum }];
         const docRef = await addDoc(collection(db, "prendas"), datosGuardar);
         setPrendas(p => [{ id: docRef.id, ...datosGuardar }, ...p]);
-        showToast(`✅ Prenda guardada: ${codigoFinal}`);
+        showToast(`✅ Producto guardado: ${codigoFinal}`);
       }
       setForm(formBase); setEditandoId(null); setMostrarForm(false);
     } catch { showToast("❌ Error al guardar", "danger"); }
@@ -190,12 +190,12 @@ export default function Inventario({ prendas, setPrendas }) {
     try {
       await deleteDoc(doc(db, "prendas", prendaAEliminar.id));
       setPrendas(p => p.filter(pr => pr.id !== prendaAEliminar.id));
-      setPrendaAEliminar(null); showToast("🗑️ Prenda eliminada");
+      setPrendaAEliminar(null); showToast("🗑️ Producto eliminado");
     } catch { showToast("❌ Error al eliminar", "danger"); }
   };
 
   const abrirEdicion = (p) => {
-    let tallasForm = { "XS": "", "S": "", "M": "", "L": "", "XL": "", "0XL": "", "1XL": "", "2XL": "", "3XL": "", "4XL": "", "5XL": "" };
+    let tallasForm = { "Única": "", "Mini": "", "Regular": "", "Grande": "", "Duo": "", "Kit": "" };
     if (p.stockPorTalla) {
       Object.keys(p.stockPorTalla).forEach(k => { if (tallasForm[k] !== undefined) tallasForm[k] = String(p.stockPorTalla[k]); });
     } else if (p.talla && tallasForm[p.talla] !== undefined) {
@@ -207,7 +207,7 @@ export default function Inventario({ prendas, setPrendas }) {
   };
 
   const duplicarPrenda = (p) => {
-    let tallasForm = { "XS": "", "S": "", "M": "", "L": "", "XL": "", "0XL": "", "1XL": "", "2XL": "", "3XL": "", "4XL": "", "5XL": "" };
+    let tallasForm = { "Única": "", "Mini": "", "Regular": "", "Grande": "", "Duo": "", "Kit": "" };
     if (p.stockPorTalla) {
       Object.keys(p.stockPorTalla).forEach(k => { if (tallasForm[k] !== undefined) tallasForm[k] = String(p.stockPorTalla[k]); });
     }
@@ -216,7 +216,7 @@ export default function Inventario({ prendas, setPrendas }) {
       ...formBase,
       descripcion: p.descripcion + " (copia)",
       sku: p.sku || "",
-      categoria: p.categoria || "Blusa",
+      categoria: p.categoria || "Labial",
       costoCompra: String(p.costoCompra),
       precioVenta: String(p.precioVenta),
       stockMinimo: String(p.stockMinimo || 1),
@@ -224,7 +224,7 @@ export default function Inventario({ prendas, setPrendas }) {
       imagenes: imgsRecuperadas
     });
     setEditandoId(null); setMostrarForm(true); window.scrollTo(0, 0);
-    showToast("📋 Prenda duplicada — edita y guarda", "ok");
+    showToast("📋 Producto duplicado — edita y guarda", "ok");
   };
 
   const abrirAjusteRapido = (p) => {
@@ -314,7 +314,7 @@ export default function Inventario({ prendas, setPrendas }) {
                 ? <img src={img} alt="prenda" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 16, margin: "0 auto 16px", display: "block", border: "3px solid #FFCDD2" }} />
                 : <div style={{ background: "#FFEBEE", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>;
             })()}
-            <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Eliminar Prenda?</h3>
+            <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Eliminar Producto?</h3>
             <p style={{ fontSize: 13, color: "var(--dark)", fontWeight: 700, marginBottom: 4 }}>{prendaAEliminar.descripcion}</p>
             <p style={{ fontSize: 12, color: "var(--mid)", marginBottom: 24 }}>{prendaAEliminar.codigo} · {Number(prendaAEliminar.stock)} uds en stock</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -427,7 +427,7 @@ export default function Inventario({ prendas, setPrendas }) {
       {mostrarForm && (
         <div className="animate" style={{ background: "var(--white)", borderRadius: 20, padding: "20px", boxShadow: "var(--shadow)", border: "1.5px solid var(--rosa-soft)", width: "100%" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-            <p style={{ fontFamily: "'Fraunces', serif", fontSize: 18, fontWeight: 700, color: "var(--rosa-deep)", margin: 0 }}>{editandoId ? `Editando: ${form.codigo}` : "Nueva prenda"}</p>
+            <p style={{ fontFamily: "'Fraunces', serif", fontSize: 18, fontWeight: 700, color: "var(--rosa-deep)", margin: 0 }}>{editandoId ? `Editando: ${form.codigo}` : "Nuevo producto"}</p>
             <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mid)", background: "var(--creme)", padding: "4px 10px", borderRadius: 50 }}>{form.imagenes.length} / 4 fotos</span>
           </div>
 
@@ -450,7 +450,7 @@ export default function Inventario({ prendas, setPrendas }) {
             </div>
 
             <div style={{ width: "100%" }}>
-              <label style={{ fontSize: 11, color: "var(--mid)", paddingLeft: 4 }}>Descripción de la Prenda</label>
+              <label style={{ fontSize: 11, color: "var(--mid)", paddingLeft: 4 }}>Descripción del Producto</label>
               <input value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} style={{ width: "100%" }} />
             </div>
 
@@ -473,7 +473,7 @@ export default function Inventario({ prendas, setPrendas }) {
             </div>
 
             <div style={{ background: "var(--creme)", padding: "16px", borderRadius: 12, width: "100%" }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 12, display: "block" }}>Stock por Talla</label>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 12, display: "block" }}>Stock por Presentación</label>
               <div className="grid-tallas">
                 {ordenTallas.map(t => (
                   <div key={t} style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
@@ -505,7 +505,7 @@ export default function Inventario({ prendas, setPrendas }) {
             </div>
           </div>
 
-          <button onClick={guardar} style={{ marginTop: 20, width: "100%", background: "linear-gradient(135deg, var(--success), #43A047)", color: "var(--white)", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 600, display: "flex", justifyContent: "center", gap: 8 }}>
+          <button onClick={guardar} style={{ marginTop: 20, width: "100%", background: "linear-gradient(135deg, var(--rosa-deep), var(--rosa))", color: "var(--white)", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 600, display: "flex", justifyContent: "center", gap: 8 }}>
             <Icon name="check" size={16} /> {editandoId ? "Actualizar Inventario" : "Guardar Producto"}
           </button>
         </div>
@@ -534,7 +534,7 @@ export default function Inventario({ prendas, setPrendas }) {
 
       {/* GRID */}
       <div className="grid-prendas">
-        {filtradas.length === 0 && <p style={{ fontSize: 13, color: "var(--mid)", padding: "10px" }}>No hay prendas con estos filtros.</p>}
+        {filtradas.length === 0 && <p style={{ fontSize: 13, color: "var(--mid)", padding: "10px" }}>No hay productos con estos filtros.</p>}
         {filtradas.map(p => {
           const tallasArray = p.stockPorTalla
             ? Object.entries(p.stockPorTalla).sort((a, b) => ordenTallas.indexOf(a[0]) - ordenTallas.indexOf(b[0]))

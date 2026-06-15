@@ -21,7 +21,7 @@ export default function LoginScreen() {
       <div style={{ position: "absolute", bottom: "-10%", right: "-5%", width: 250, height: 250, background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)", borderRadius: "50%", filter: "blur(2px)", boxShadow: "inset -20px -20px 40px rgba(0,0,0,0.1)" }} />
 
       <div className="animate" style={{ background: "rgba(255, 255, 255, 0.45)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", border: "1px solid rgba(255, 255, 255, 0.6)", borderRadius: 32, padding: "40px 30px", width: "100%", maxWidth: 360, boxShadow: "0 8px 32px rgba(0, 0, 0, 0.05)", zIndex: 2, position: "relative" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 36, fontSize: 13, color: "#666" }}><span>Curvy.vup</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 36, fontSize: 13, color: "#666" }}><span>Tosha</span></div>
         <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 28, fontWeight: 500, color: "#111", marginBottom: 28 }}>Log in</h1>
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", background: "rgba(255, 255, 255, 0.6)", borderRadius: 50, padding: "4px 20px", border: "1px solid rgba(255, 255, 255, 0.8)", boxShadow: "inset 0 2px 5px rgba(0,0,0,0.02)" }}>
@@ -43,7 +43,7 @@ export default function LoginScreen() {
       </div>
       <div className="animate" style={{ background: "#1c0f17", color: "#fff", borderRadius: 32, padding: "36px 30px 24px", width: "90%", maxWidth: 320, marginTop: -30, zIndex: 1, position: "relative", boxShadow: "0 20px 40px rgba(0,0,0,0.15)" }}>
         <h3 style={{ fontSize: 22, fontWeight: 500, marginBottom: 4, letterSpacing: -0.5 }}>New in</h3>
-        <p style={{ color: "#aaa", fontSize: 13 }}>Inventario Curvy</p>
+        <p style={{ color: "#aaa", fontSize: 13 }}>Tosha Beauty</p>
       </div>
     </div>
   );

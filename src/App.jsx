@@ -53,7 +53,7 @@ export default function App() {
   ];
 
   // LOGICA PARA USUARIOS NO AUTENTICADOS (El público o tú entrando a loguearte)
-  if (usuario === undefined) return <div style={{ minHeight: '100vh', background: '#FAF7F4' }} />;
+  if (usuario === undefined) return <div style={{ minHeight: '100vh', background: '#FAF8FF' }} />;
   if (usuario === null) {
     return (
       <>
@@ -85,7 +85,7 @@ export default function App() {
           
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
-              <p style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: 24, fontWeight: 700, color: "var(--rosa-deep)", lineHeight: 1 }}>Curvy</p>
+              <p style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: 24, fontWeight: 700, color: "var(--rosa-deep)", lineHeight: 1 }}>Tosha</p>
               <p style={{ fontSize: 10, color: "var(--mid)", letterSpacing: 1.5, textTransform: "uppercase", marginTop: 2 }}>Panel de gestión</p>
             </div>
             <button onClick={() => {signOut(auth); setMostrarLogin(false);}} style={{ background: "transparent", border: "none", color: "var(--danger)", display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 8 }}>

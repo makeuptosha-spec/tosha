@@ -4,35 +4,34 @@ import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
-const PROMPT = `Eres un extractor de datos para una tienda de ropa plus-size en Colombia.
+const PROMPT = `Eres un extractor de datos para una tienda de cosméticos y belleza en Colombia.
 Analiza esta imagen de factura de compra y extrae TODOS los productos.
 
 La factura tiene este formato:
 - SKU: código único del producto (alfanumérico, puede aparecer como "Ref", "SKU", "Código" o similar)
-- Descripción: nombre de la prenda tal cual aparece
+- Descripción: nombre del producto tal cual aparece (labial, base, sombra, crema, etc.)
 - Cantidad: aparece con formato "x1", "x2", "x3" etc — extrae solo el número
-- Talla: ejemplos "XL", "1XL", "2XL", "S", "M" — respétalas exactamente como aparecen
+- Presentación: puede ser "Única", "Mini", "Regular", "Grande", tono/shade, ml — respétalas exactamente. Si no hay, usa "Única"
 - Costo unitario: precio por unidad en pesos colombianos
 
-REGLA CRÍTICA: Si el mismo SKU aparece varias veces con distintas tallas, agrúpalas en UN SOLO objeto con array de tallas.
+REGLA CRÍTICA: Si el mismo SKU aparece varias veces con distintas presentaciones, agrúpalas en UN SOLO objeto con array de tallas.
 
 Responde ÚNICAMENTE con un JSON array, sin texto adicional, sin markdown:
 [
   {
     "sku": "ABC123",
-    "descripcion": "Blusa manga larga estampada",
+    "descripcion": "Labial Matte Terciopelo",
     "tallas": [
-      {"talla": "XL", "cantidad": 2},
-      {"talla": "1XL", "cantidad": 1}
+      {"talla": "Única", "cantidad": 5}
     ],
-    "costoUnitario": 38000
+    "costoUnitario": 25000
   }
 ]
 
 Reglas:
-- costoUnitario: número entero sin puntos ni símbolos (38000 no $38.000)
+- costoUnitario: número entero sin puntos ni símbolos (25000 no $25.000)
 - cantidad: número entero (extraer el número de "x2" → 2)
-- talla: exactamente como aparece en la imagen
+- talla: usa "Única" si no hay presentación específica
 - Si no puedes leer un campo con certeza usa null
 - NADA fuera del JSON`;
 
@@ -94,7 +93,7 @@ async function llamarGroq(base64, mediaType = "image/png") {
   return JSON.parse(jsonStr);
 }
 
-async function buscarPrendaPorSku(sku) {
+async function buscarProductoPorSku(sku) {
   if (!sku) return null;
   const snap = await getDocs(query(collection(db, "prendas"), where("sku", "==", String(sku).trim())));
   if (snap.empty) return null;
@@ -138,25 +137,23 @@ export default function ImportarFactura({ onBorradorCreado, onClose }) {
       let nuevos = 0, restock = 0;
 
       for (const p of productos) {
-        const prendaExistente = await buscarPrendaPorSku(p.sku);
+        const productoExistente = await buscarProductoPorSku(p.sku);
 
-        if (prendaExistente) {
-          // RESTOCK — prenda ya existe con ese SKU
+        if (productoExistente) {
           await addDoc(collection(db, "borradores"), {
             ...p,
             lote,
             fecha,
             estado: "pendiente",
             tipo: "restock",
-            prendaExistenteId:     prendaExistente.id,
-            prendaExistenteNombre: prendaExistente.descripcion,
-            stockActualPorTalla:   prendaExistente.stockPorTalla || {},
-            categoria:             prendaExistente.categoria || "Blusa",
-            precioVenta:           prendaExistente.precioVenta || "",
+            prendaExistenteId:     productoExistente.id,
+            prendaExistenteNombre: productoExistente.descripcion,
+            stockActualPorTalla:   productoExistente.stockPorTalla || {},
+            categoria:             productoExistente.categoria || "Labial",
+            precioVenta:           productoExistente.precioVenta || "",
           });
           restock++;
         } else {
-          // NUEVO — no existe ese SKU
           await addDoc(collection(db, "borradores"), {
             ...p,
             lote,
@@ -164,7 +161,7 @@ export default function ImportarFactura({ onBorradorCreado, onClose }) {
             estado: "pendiente",
             tipo: "nuevo",
             precioVenta: "",
-            categoria:   "Blusa",
+            categoria:   "Labial",
             imagenes:    [],
           });
           nuevos++;
@@ -173,7 +170,7 @@ export default function ImportarFactura({ onBorradorCreado, onClose }) {
 
       setResumen({ nuevos, restock });
       setEstado("ok");
-      setProgreso(`¡${productos.length} ${productos.length === 1 ? "prenda" : "prendas"} procesadas!`);
+      setProgreso(`¡${productos.length} ${productos.length === 1 ? "producto" : "productos"} procesados!`);
       onBorradorCreado?.();
     } catch (err) {
       setEstado("error");
@@ -228,7 +225,7 @@ export default function ImportarFactura({ onBorradorCreado, onClose }) {
             <div style={{ display: "flex", gap: 10, justifyContent: "center", margin: "12px 0 20px" }}>
               {resumen.nuevos > 0 && (
                 <span style={{ background: "#E8F5E9", color: "var(--success)", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
-                  ✨ {resumen.nuevos} nueva{resumen.nuevos !== 1 ? "s" : ""}
+                  ✨ {resumen.nuevos} nuevo{resumen.nuevos !== 1 ? "s" : ""}
                 </span>
               )}
               {resumen.restock > 0 && (

@@ -1,12 +1,12 @@
 {
   "projects": {
-    "default": "curvylaura-3eaf4"
+    "default": "tosha-c9a7c"
   },
   "targets": {
-    "curvylaura-3eaf4": {
+    "tosha-c9a7c": {
       "hosting": {
-        "curvyvup": [
-          "curvyvup"
+        "tosha": [
+          "tosha"
         ]
       }
     }

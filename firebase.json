@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "target": "curvyvup",
+    "target": "tosha",
     "public": "dist",
     "ignore": [
       "firebase.json",

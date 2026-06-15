@@ -22,7 +22,7 @@ function Pct({ val }) {
 }
 
 export default function Inicio({ prendas, ventas, facturas = [], setFacturas }) {
-  const [metaDiaria, setMetaDiaria]   = useState(() => Number(localStorage.getItem("curvy_meta_diaria")) || 0);
+  const [metaDiaria, setMetaDiaria]   = useState(() => Number(localStorage.getItem("tosha_meta_diaria")) || 0);
   const [editandoMeta, setEditandoMeta] = useState(false);
   const [metaInput, setMetaInput]     = useState("");
   const [marcando, setMarcando]       = useState(null);
@@ -68,7 +68,7 @@ export default function Inicio({ prendas, ventas, facturas = [], setFacturas }) 
   const progreso = metaDiaria > 0 ? Math.min(100, Math.round((ingresosHoy / metaDiaria) * 100)) : 0;
   const guardarMeta = () => {
     const val = Number(String(metaInput).replace(/\./g, "").replace(",", "."));
-    if (val > 0) { localStorage.setItem("curvy_meta_diaria", val); setMetaDiaria(val); }
+    if (val > 0) { localStorage.setItem("tosha_meta_diaria", val); setMetaDiaria(val); }
     setEditandoMeta(false);
   };
 
@@ -90,7 +90,7 @@ export default function Inicio({ prendas, ventas, facturas = [], setFacturas }) 
         <div style={{ position: "absolute", top: -24, right: -24, width: 110, height: 110, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
         <div style={{ position: "absolute", bottom: -16, left: 60, width: 70, height: 70, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
         <p style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: 13, opacity: 0.88, marginBottom: 2 }}>{SALUDO}</p>
-        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 700, marginBottom: 2 }}>Llegó la CEO de Curvy 💅🏻</h2>
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 700, marginBottom: 2 }}>Llegó la CEO de Tosha 💅🏻</h2>
         <p style={{ fontSize: 12, opacity: 0.75 }}>{hoyObj.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}</p>
       </div>
 
@@ -141,7 +141,7 @@ export default function Inicio({ prendas, ventas, facturas = [], setFacturas }) 
           <p style={{ fontSize: 20, fontWeight: 800, color: "var(--dark)", marginBottom: 4 }}>{fmt(ingresosHoy)}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Pct val={pctVentas} />
-            <span style={{ fontSize: 11, color: "var(--mid)" }}>{fmtNum(unidadesHoy)} prendas · {ticketsHoy} {ticketsHoy === 1 ? "venta" : "ventas"}</span>
+            <span style={{ fontSize: 11, color: "var(--mid)" }}>{fmtNum(unidadesHoy)} productos · {ticketsHoy} {ticketsHoy === 1 ? "venta" : "ventas"}</span>
           </div>
         </div>
 
@@ -161,7 +161,7 @@ export default function Inicio({ prendas, ventas, facturas = [], setFacturas }) 
         <div style={{ background: "linear-gradient(135deg, #FFF8E1, #FFF3E0)", borderRadius: 18, padding: "14px 18px", border: "1px solid #FFE082", display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 28 }}>🏆</span>
           <div>
-            <p style={{ fontSize: 11, color: "#F57F17", fontWeight: 700, margin: 0 }}>Prenda estrella hoy</p>
+            <p style={{ fontSize: 11, color: "#F57F17", fontWeight: 700, margin: 0 }}>Producto estrella hoy</p>
             <p style={{ fontSize: 14, fontWeight: 800, color: "var(--dark)", margin: "2px 0 0" }}>{topPrenda[0]}</p>
             <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>{topPrenda[1]} {topPrenda[1] === 1 ? "unidad vendida" : "unidades vendidas"}</p>
           </div>

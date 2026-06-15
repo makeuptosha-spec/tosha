@@ -27,7 +27,7 @@ export default function Ventas({ prendas, setPrendas, ventas, setVentas, factura
   const [generandoPDF, setGenerandoPDF]         = useState(false);
 
   const prendaSel  = prendas.find(p => p.codigo === codigoSel);
-  const ordenTallas = ["XS","S","M","L","XL","0XL","1XL","2XL","3XL","4XL","5XL"];
+  const ordenTallas = ["Única","Mini","Regular","Grande","Duo","Kit"];
   const showToast  = (msg, tipo = "ok") => { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); };
 
   // ── COMPATIBILIDAD CON DATOS VIEJOS ─────────────────────────────────────
@@ -167,7 +167,7 @@ export default function Ventas({ prendas, setPrendas, ventas, setVentas, factura
       const pdf     = new jsPDF({ orientation: "portrait", unit: "px", format: [canvas.width / 2, canvas.height / 2] });
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
       const num    = String(ultimaVentaPdf.numeroFactura || 0).padStart(4, "0");
-      const nombre = ultimaVentaPdf.numeroFactura ? `Factura_CURVY-${num}.pdf` : `Factura_${ultimaVentaPdf.ticketId?.slice(-6)}.pdf`;
+      const nombre = ultimaVentaPdf.numeroFactura ? `Factura_TOSHA-${num}.pdf` : `Factura_${ultimaVentaPdf.ticketId?.slice(-6)}.pdf`;
       pdf.save(nombre);
     } catch { showToast("❌ Error generando PDF", "danger"); }
     finally { setGenerandoPDF(false); }
@@ -176,8 +176,8 @@ export default function Ventas({ prendas, setPrendas, ventas, setVentas, factura
   const enviarWhatsApp = () => {
     if (!ultimaVentaPdf?.clienteTelefono) return;
     const num      = String(ultimaVentaPdf.numeroFactura || 0).padStart(4, "0");
-    const idFac    = ultimaVentaPdf.numeroFactura ? `CURVY-${num}` : ultimaVentaPdf.ticketId?.slice(-6);
-    const texto    = `Hola! Aquí tienes tu factura *${idFac}* de Curvy 💕\nTotal: *${fmt(ultimaVentaPdf.total)}*\nFecha: ${new Date(ultimaVentaPdf.fecha).toLocaleDateString("es-CO")}\n¡Gracias por tu compra, hermosa! 🌸`;
+    const idFac    = ultimaVentaPdf.numeroFactura ? `TOSHA-${num}` : ultimaVentaPdf.ticketId?.slice(-6);
+    const texto    = `Hola! Aquí tienes tu factura *${idFac}* de Tosha 💜\nTotal: *${fmt(ultimaVentaPdf.total)}*\nFecha: ${new Date(ultimaVentaPdf.fecha).toLocaleDateString("es-CO")}\n¡Gracias por tu compra, hermosa! 💜`;
     window.open(`https://wa.me/57${ultimaVentaPdf.clienteTelefono.replace(/\D/g,"")}?text=${encodeURIComponent(texto)}`, "_blank");
   };
 
@@ -244,7 +244,7 @@ export default function Ventas({ prendas, setPrendas, ventas, setVentas, factura
         }
       }
       setItemAEliminar(null);
-      showToast("✅ Prenda anulada y stock devuelto por talla");
+      showToast("✅ Producto anulado y stock devuelto");
     } catch (err) { showToast("❌ Error al anular prenda", "danger"); }
   };
 
@@ -290,7 +290,7 @@ export default function Ventas({ prendas, setPrendas, ventas, setVentas, factura
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div className="animate" style={{ background: "white", padding: 30, borderRadius: 24, width: "90%", maxWidth: 360, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
             <div style={{ background: "#FFF3E0", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--warn)" }}><Icon name="alert" size={28} /></div>
-            <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Anular esta prenda?</h3>
+            <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Anular este producto?</h3>
             <p style={{ fontSize: 13, color: "var(--mid)", marginBottom: 24 }}>Se quitará <strong>{itemAEliminar.item.descripcion} ({itemAEliminar.item.talla})</strong> y su stock regresará al inventario.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setItemAEliminar(null)} style={{ flex: 1, background: "var(--border)", color: "var(--dark)", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
@@ -304,10 +304,10 @@ export default function Ventas({ prendas, setPrendas, ventas, setVentas, factura
       {mostrarModalImpresion && ultimaVentaPdf && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div className="animate" style={{ background: "white", padding: 30, borderRadius: 24, width: "90%", maxWidth: 380, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
-            <div style={{ background: "linear-gradient(135deg, #8B1A4D, #C2185B)", width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 28 }}>💕</div>
+            <div style={{ background: "linear-gradient(135deg, var(--rosa-deep), var(--rosa))", width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 28 }}>💜</div>
             <h3 style={{ fontSize: 19, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 4 }}>¡Venta registrada!</h3>
             {ultimaVentaPdf.numeroFactura && (
-              <p style={{ fontSize: 13, color: "var(--rosa-deep)", fontWeight: 700, marginBottom: 4 }}>CURVY-{String(ultimaVentaPdf.numeroFactura).padStart(4,"0")}</p>
+              <p style={{ fontSize: 13, color: "var(--rosa-deep)", fontWeight: 700, marginBottom: 4 }}>TOSHA-{String(ultimaVentaPdf.numeroFactura).padStart(4,"0")}</p>
             )}
             <p style={{ fontSize: 13, color: "var(--mid)", marginBottom: 24 }}>¿Qué deseas hacer con la factura?</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -375,7 +375,7 @@ export default function Ventas({ prendas, setPrendas, ventas, setVentas, factura
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
             {facturasFiltradas.length === 0 && <p style={{ fontSize: 13, color: "var(--mid)", padding: "10px" }}>No hay ventas en este filtro.</p>}
             {facturasFiltradas.map(f => {
-              const numStr        = f.numeroFactura ? `CURVY-${String(f.numeroFactura).padStart(4,"0")}` : `TK-${f.ticketId?.slice(-6)}`;
+              const numStr        = f.numeroFactura ? `TOSHA-${String(f.numeroFactura).padStart(4,"0")}` : `TK-${f.ticketId?.slice(-6)}`;
               const nombreCliente = f.clienteNombre || f.clienteCredito || "";
               return (
                 <div key={f.id} style={{ background: "var(--white)", borderRadius: 16, padding: "18px", boxShadow: "var(--shadow)", border: "1px solid var(--border)", display: "flex", flexDirection: "column" }}>

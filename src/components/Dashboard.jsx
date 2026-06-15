@@ -341,7 +341,7 @@ export default function Dashboard({ prendas, ventas, facturas = [] }) {
         <div style={{ background: "linear-gradient(135deg, #1A237E, #283593)", borderRadius: 20, padding: "18px 16px", color: "#fff", gridColumn: "1 / -1" }}>
           <p style={{ fontSize: 11, opacity: 0.75, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>💰 Capital inmovilizado en inventario</p>
           <p style={{ fontSize: 28, fontWeight: 900, marginBottom: 2 }}>{fmt(capitalInventario)}</p>
-          <p style={{ fontSize: 12, opacity: 0.8 }}>{fmtNum(totalPrendas)} prendas en stock · costo de lo que tienes guardado</p>
+          <p style={{ fontSize: 12, opacity: 0.8 }}>{fmtNum(totalPrendas)} productos en stock · costo de lo que tienes guardado</p>
         </div>
 
         <div style={{ background: "var(--white)", borderRadius: 16, padding: "16px", border: `1.5px solid ${diasInventarioStatus === "ok" ? "#A5D6A7" : diasInventarioStatus === "warn" ? "#FFB74D" : "#EF9A9A"}`, boxShadow: "var(--shadow)" }}>
@@ -363,7 +363,7 @@ export default function Dashboard({ prendas, ventas, facturas = [] }) {
           <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "var(--mid)", marginBottom: 6 }}>📊 Margen del mes</p>
           <p style={{ fontSize: 24, fontWeight: 900, color: rentabilidad >= 40 ? "var(--success)" : rentabilidad >= 25 ? "var(--warn)" : "var(--danger)", marginBottom: 2 }}>{rentabilidad}%</p>
           <p style={{ fontSize: 11, color: "var(--mid)" }}>Utilidad: {fmt(gananciasMes)}</p>
-          <p style={{ fontSize: 10, color: "var(--mid)", marginTop: 4 }}>Saludable en ropa: 40%+</p>
+          <p style={{ fontSize: 10, color: "var(--mid)", marginTop: 4 }}>Saludable en belleza: 40%+</p>
         </div>
       </div>
 
@@ -373,7 +373,7 @@ export default function Dashboard({ prendas, ventas, facturas = [] }) {
         <StatCard icon="money"    label="Ingresos del mes"   value={fmt(ingresosMes)}    sub={crecimiento >= 0 ? `▲ +${crecimiento}% vs mes pasado` : `▼ ${crecimiento}% vs mes pasado`} color="var(--rosa)" />
         <StatCard icon="trending" label="Ticket promedio"    value={fmt(ticketPromedio)} sub={ticketSub} color="#7B1FA2" />
         <StatCard icon="dashboard" label="Proyección del mes" value={fmt(proyeccion)}    sub={`${diasActivos} días activos de ${diasTranscurridos}`} color="var(--warn)" />
-        <StatCard icon="tag"      label="Ventas cerradas"    value={`${ticketsUnicos}`}  sub={`${fmtNum(ventasMesActual.reduce((s,v)=>s+Number(v.cantidad),0))} prendas`} color="var(--success)" />
+        <StatCard icon="tag"      label="Ventas cerradas"    value={`${ticketsUnicos}`}  sub={`${fmtNum(ventasMesActual.reduce((s,v)=>s+Number(v.cantidad),0))} productos`} color="var(--success)" />
       </div>
 
       {/* ── MÉTRICAS SECUNDARIAS ── */}
@@ -396,11 +396,11 @@ export default function Dashboard({ prendas, ventas, facturas = [] }) {
         <div style={{ background: sinMovimiento > 0 ? "#FFF3E0" : "var(--white)", borderRadius: 16, padding: "14px", border: `1.5px solid ${sinMovimiento > 0 ? "#FFB74D" : "var(--border)"}`, boxShadow: "var(--shadow)" }}>
           <p style={{ fontSize: 10, color: "var(--warn)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>🧊 Sin movimiento</p>
           <p style={{ fontSize: 18, fontWeight: 800, color: sinMovimiento > 0 ? "var(--warn)" : "var(--success)" }}>{sinMovimiento}</p>
-          <p style={{ fontSize: 11, color: "var(--mid)", marginTop: 4 }}>{sinMovimiento === 0 ? "¡Todo rotando!" : "prendas sin venta este mes"}</p>
+          <p style={{ fontSize: 11, color: "var(--mid)", marginTop: 4 }}>{sinMovimiento === 0 ? "¡Todo rotando!" : "productos sin venta este mes"}</p>
         </div>
 
         <div style={{ background: "var(--white)", borderRadius: 16, padding: "14px", border: "1.5px solid var(--border)", boxShadow: "var(--shadow)" }}>
-          <p style={{ fontSize: 10, color: "var(--rosa-deep)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>👑 Talla estrella</p>
+          <p style={{ fontSize: 10, color: "var(--rosa-deep)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>👑 Más vendida</p>
           {tallasOrdenadas.length > 0 ? (
             <>
               <p style={{ fontSize: 20, fontWeight: 800, color: "var(--rosa-deep)" }}>{tallasOrdenadas[0][0]}</p>
@@ -430,7 +430,7 @@ export default function Dashboard({ prendas, ventas, facturas = [] }) {
       {/* ── ANÁLISIS: TALLAS + GANANCIA POR CATEGORÍA + MÉTODOS ── */}
       <div className="desktop-flex">
         <div style={{ flex: 1, background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}>
-          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--dark)", marginBottom: 16 }}>📐 Ventas por talla (mes)</p>
+          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--dark)", marginBottom: 16 }}>📐 Por presentación (mes)</p>
           {tallasOrdenadas.length === 0
             ? <p style={{ fontSize: 12, color: "var(--mid)" }}>Sin datos este mes.</p>
             : tallasOrdenadas.map(([t, v]) => <MiniBar key={t} label={t} value={v} max={maxTalla} color="var(--rosa-deep)" />)
@@ -488,7 +488,7 @@ export default function Dashboard({ prendas, ventas, facturas = [] }) {
         </div>
 
         <div style={{ flex: 1, background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}>
-          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--dark)", marginBottom: 4 }}>😴 Prendas dormidas</p>
+          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--dark)", marginBottom: 4 }}>😴 Productos dormidos</p>
           <p style={{ fontSize: 11, color: "var(--mid)", marginBottom: 14 }}>Sin venderse hace 20+ días — candidatas a descuento o liquidación</p>
           {prendasDormidas.length === 0
             ? <p style={{ fontSize: 12, color: "var(--success)" }}>¡Todo el inventario ha rotado recientemente!</p>
@@ -540,7 +540,7 @@ export default function Dashboard({ prendas, ventas, facturas = [] }) {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <textarea
-            placeholder="Escribe algo para no olvidar… pedir tallas, llamar proveedor, nota de caja..."
+            placeholder="Escribe algo para no olvidar… pedir productos, llamar proveedor, nota de caja..."
             value={notaTexto}
             onChange={e => setNotaTexto(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) guardarNota(); }}

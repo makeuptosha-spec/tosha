@@ -167,7 +167,7 @@ export const LoaderInteractivo = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--creme)', padding: 20, textAlign: 'center' }}>
-      <div className="pulsing" style={{ fontSize: 50, marginBottom: 20 }}>💕</div>
+      <div className="pulsing" style={{ fontSize: 50, marginBottom: 20 }}>💜</div>
       <p style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 600, color: 'var(--rosa-deep)', maxWidth: 320, lineHeight: 1.4 }}>{msg}</p>
     </div>
   );
@@ -217,20 +217,20 @@ export const globalStyles = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --rosa:      #C2185B;
-    --rosa-deep: #880E4F;
-    --rosa-soft: #F8BBD9;
-    --rosa-pale: #FDF0F6;
-    --creme:     #FAF7F4;
-    --dark:      #1C0F17;
-    --mid:       #7B4F6A;
-    --border:    #EDD9E8;
+    --rosa:      #A855F7;
+    --rosa-deep: #7E22CE;
+    --rosa-soft: #D8B4FE;
+    --rosa-pale: #F5F3FF;
+    --creme:     #FAF8FF;
+    --dark:      #1E1027;
+    --mid:       #7C6A9B;
+    --border:    #EDE9FE;
     --success:   #2E7D32;
     --warn:      #E65100;
     --danger:    #C62828;
     --white:     #FFFFFF;
-    --shadow:    0 4px 24px rgba(136,14,79,0.10);
-    --shadow-lg: 0 8px 40px rgba(136,14,79,0.16);
+    --shadow:    0 4px 24px rgba(126,34,206,0.10);
+    --shadow-lg: 0 8px 40px rgba(126,34,206,0.16);
   }
 
   body { font-family: 'DM Sans', sans-serif; background: var(--creme); color: var(--dark); overflow-x: hidden; }
@@ -240,7 +240,7 @@ export const globalStyles = `
     border-radius: 12px; padding: 10px 14px; font-size: 14px; background: var(--white);
     color: var(--dark); transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
   }
-  input:focus, select:focus { border-color: var(--rosa); box-shadow: 0 0 0 3px rgba(194,24,91,0.1); }
+  input:focus, select:focus { border-color: var(--rosa); box-shadow: 0 0 0 3px rgba(168,85,247,0.1); }
   button { cursor: pointer; font-family: 'DM Sans', sans-serif; }
 
   ::-webkit-scrollbar { width: 5px; }

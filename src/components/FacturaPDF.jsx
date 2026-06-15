@@ -1,17 +1,17 @@
 import { fmt } from "../utils.jsx";
 
-const R  = "#C2185B";
-const RD = "#8B1A4D";
-const RS = "#F8BBD9";
-const RP = "#FDF0F6";
-const M  = "#7B4F6A";
-const D  = "#1C0F17";
+const R  = "#A855F7";
+const RD = "#7E22CE";
+const RS = "#D8B4FE";
+const RP = "#F5F3FF";
+const M  = "#7C6A9B";
+const D  = "#1E1027";
 
 export default function FacturaPDF({ factura }) {
   if (!factura) return null;
 
   const num          = String(factura.numeroFactura || 0).padStart(4, "0");
-  const idFactura    = factura.numeroFactura ? `CURVY-${num}` : `TK-${(factura.ticketId || "").slice(-6)}`;
+  const idFactura    = factura.numeroFactura ? `TOSHA-${num}` : `TK-${(factura.ticketId || "").slice(-6)}`;
   const cliente      = factura.clienteNombre || factura.clienteCredito || "";
   const telefono     = factura.clienteTelefono || "";
   const esCredito    = factura.formaPago === "Crédito";
@@ -23,8 +23,8 @@ export default function FacturaPDF({ factura }) {
       {/* HEADER */}
       <div style={{ background: `linear-gradient(135deg, ${RD} 0%, ${R} 100%)`, padding: "30px 40px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div>
-          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: 40, color: "#fff", lineHeight: 1 }}>Curvy</div>
-          <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginTop: 6 }}>Moda Plus Size · Colombia</div>
+          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: 40, color: "#fff", lineHeight: 1 }}>Tosha</div>
+          <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginTop: 6 }}>Cosméticos & Belleza · Colombia</div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 9, letterSpacing: 3, textTransform: "uppercase" }}>Factura de Venta</div>
@@ -57,9 +57,8 @@ export default function FacturaPDF({ factura }) {
       <div style={{ padding: "18px 40px", display: "flex", gap: 0, borderBottom: `1px solid ${RS}` }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: RD, fontWeight: 700, marginBottom: 8 }}>Vendedor</div>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>Curvy</div>
-          <div style={{ fontSize: 11, color: M, marginTop: 3 }}>📞 +57 301 788 6206</div>
-          <div style={{ fontSize: 11, color: M, marginTop: 2 }}>Colombia</div>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>Tosha</div>
+          <div style={{ fontSize: 11, color: M, marginTop: 3 }}>Colombia</div>
         </div>
         {cliente && (
           <div style={{ flex: 1, borderLeft: `1px solid ${RS}`, paddingLeft: 28 }}>
@@ -76,7 +75,7 @@ export default function FacturaPDF({ factura }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${RS}` }}>
-              {["Descripción", "Talla", "Cant.", "Precio", "Subtotal"].map((h, i) => (
+              {["Descripción", "Present.", "Cant.", "Precio", "Subtotal"].map((h, i) => (
                 <th key={h} style={{ textAlign: i === 0 ? "left" : i >= 3 ? "right" : "center", fontSize: 10, color: M, fontWeight: 600, paddingBottom: 10, letterSpacing: 1, textTransform: "uppercase" }}>{h}</th>
               ))}
             </tr>
@@ -106,9 +105,9 @@ export default function FacturaPDF({ factura }) {
       {/* FOOTER */}
       <div style={{ margin: "0 40px", borderTop: `1px solid ${RS}` }} />
       <div style={{ padding: "18px 40px 28px", textAlign: "center" }}>
-        <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: 18, color: R, marginBottom: 8 }}>¡Gracias por tu compra, hermosa! 💕</div>
-        <div style={{ fontSize: 11, color: M }}>📞 +57 301 788 6206 · Colombia</div>
-        <div style={{ fontSize: 10, color: R, marginTop: 4, letterSpacing: 1 }}>@curvymoda</div>
+        <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: 18, color: R, marginBottom: 8 }}>¡Gracias por tu compra, hermosa! 💜</div>
+        <div style={{ fontSize: 11, color: M }}>Colombia</div>
+        <div style={{ fontSize: 10, color: R, marginTop: 4, letterSpacing: 1 }}>@toshabeauty</div>
       </div>
     </div>
   );

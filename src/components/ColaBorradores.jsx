@@ -3,8 +3,8 @@ import { db } from "../firebase";
 import { collection, getDocs, updateDoc, deleteDoc, doc, addDoc, getDoc } from "firebase/firestore";
 import { fmt, Icon } from "../utils.jsx";
 
-const ORDEN_TALLAS = ["XS","S","M","L","XL","0XL","1XL","2XL","3XL","4XL","5XL","Única"];
-const CATEGORIAS   = ["Blusa","Camisa","Camiseta","Vestido","Falda","Pantalón","Legging","Conjunto","Chaqueta","Short","Otra"];
+const ORDEN_PRESENTACIONES = ["Única","Mini","Regular","Grande","Duo","Kit","Tono 01","Tono 02","Tono 03","Tono 04","Tono 05"];
+const CATEGORIAS = ["Labial","Base","Corrector","Iluminador","Sombra","Rubor","Bronzer","Delineador","Máscara","Crema","Suero","Perfume","Esmalte","Otro"];
 
 export default function ColaBorradores({ setPrendas, onCerrar }) {
   const [borradores, setBorradores] = useState([]);
@@ -34,7 +34,7 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
     }));
 
   const agregarTalla = (id) =>
-    setBorradores(prev => prev.map(b => b._id !== id ? b : { ...b, tallas: [...(b.tallas || []), { talla: "M", cantidad: 1 }] }));
+    setBorradores(prev => prev.map(b => b._id !== id ? b : { ...b, tallas: [...(b.tallas || []), { talla: "Única", cantidad: 1 }] }));
 
   const quitarTalla = (id, idx) =>
     setBorradores(prev => prev.map(b => b._id !== id ? b : { ...b, tallas: b.tallas.filter((_, i) => i !== idx) }));
@@ -43,11 +43,10 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
     setGuardando(b._id);
     try {
       if (b.tipo === "restock") {
-        // --- RESTOCK: sumar stock a prenda existente ---
-        if (!b.prendaExistenteId) throw new Error("No se encontró el ID de la prenda existente");
+        if (!b.prendaExistenteId) throw new Error("No se encontró el ID del producto existente");
         const prendaRef  = doc(db, "prendas", b.prendaExistenteId);
         const prendaSnap = await getDoc(prendaRef);
-        if (!prendaSnap.exists()) throw new Error("La prenda ya no existe en inventario");
+        if (!prendaSnap.exists()) throw new Error("El producto ya no existe en inventario");
 
         const stockActual = prendaSnap.data().stockPorTalla || {};
         const nuevoStock  = { ...stockActual };
@@ -70,7 +69,6 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
             : pr
         ));
       } else {
-        // --- NUEVO: crear prenda ---
         if (!b.descripcion || !b.precioVenta || !b.categoria) {
           alert("Completa descripción, categoría y precio de venta.");
           setGuardando(null);
@@ -86,7 +84,7 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
         const fechaCreacion = new Date().toISOString();
         const tallasNueva = {};
         (b.tallas || []).forEach(({ talla, cantidad }) => { tallasNueva[talla] = Number(cantidad) || 0; });
-        const nuevaPrenda = {
+        const nuevaProenda = {
           codigo:       b.referencia || `REF-${Date.now()}`,
           sku:          (b.sku || "").trim(),
           descripcion:  b.descripcion,
@@ -100,8 +98,8 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
           fechaIngreso: fechaCreacion,
           historial:    [{ fecha: fechaCreacion, tipo: "ingreso", tallas: tallasNueva, costoCompra: Number(b.costoUnitario) || 0 }],
         };
-        const ref = await addDoc(collection(db, "prendas"), nuevaPrenda);
-        setPrendas(p => [{ id: ref.id, ...nuevaPrenda }, ...p]);
+        const ref = await addDoc(collection(db, "prendas"), nuevaProenda);
+        setPrendas(p => [{ id: ref.id, ...nuevaProenda }, ...p]);
       }
 
       await updateDoc(doc(db, "borradores", b._id), { estado: "confirmado" });
@@ -144,14 +142,13 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
         return (
           <div key={b._id} style={{ background: "var(--white)", borderRadius: 20, padding: 20, border: `1.5px solid ${esRestock ? "#90CAF9" : "var(--rosa-soft)"}`, boxShadow: "var(--shadow)" }}>
 
-            {/* HEADER */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, paddingBottom: 12, borderBottom: "1px dashed var(--border)" }}>
               <div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
                   {esRestock ? (
                     <span style={{ fontSize: 11, background: "#E3F2FD", color: "#1565C0", padding: "3px 10px", borderRadius: 20, fontWeight: 700 }}>📦 RESURTIDO</span>
                   ) : (
-                    <span style={{ fontSize: 11, background: "#FFF3E0", color: "var(--warn)", padding: "3px 10px", borderRadius: 20, fontWeight: 700 }}>✨ NUEVA PRENDA</span>
+                    <span style={{ fontSize: 11, background: "#F3E8FF", color: "var(--rosa-deep)", padding: "3px 10px", borderRadius: 20, fontWeight: 700 }}>✨ NUEVO PRODUCTO</span>
                   )}
                   {b.sku && <span style={{ fontSize: 11, background: "var(--creme)", color: "var(--mid)", padding: "3px 8px", borderRadius: 20 }}>SKU: {b.sku}</span>}
                 </div>
@@ -159,10 +156,10 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
                 {esRestock ? (
                   <div style={{ background: "#E3F2FD", borderRadius: 10, padding: "8px 12px", marginTop: 4 }}>
                     <p style={{ fontSize: 12, fontWeight: 700, color: "#1565C0", margin: 0 }}>
-                      Prenda existente: {b.prendaExistenteNombre}
+                      Producto existente: {b.prendaExistenteNombre}
                     </p>
                     <p style={{ fontSize: 11, color: "#1976D2", margin: "4px 0 0" }}>
-                      Stock actual por talla:&nbsp;
+                      Stock actual:&nbsp;
                       {Object.entries(b.stockActualPorTalla || {}).map(([t, c]) => `${t}:${c}`).join(", ") || "sin stock"}
                     </p>
                   </div>
@@ -177,15 +174,13 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-              {/* Descripción (solo editable en nuevo) */}
               {!esRestock && (
                 <div>
                   <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Descripción *</label>
-                  <input value={b.descripcion || ""} onChange={e => actualizarCampo(b._id, "descripcion", e.target.value)} style={{ marginTop: 4 }} placeholder="Nombre de la prenda" />
+                  <input value={b.descripcion || ""} onChange={e => actualizarCampo(b._id, "descripcion", e.target.value)} style={{ marginTop: 4 }} placeholder="Nombre del producto" />
                 </div>
               )}
 
-              {/* Categoría + Precio (solo en nuevo) */}
               {!esRestock && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div>
@@ -197,27 +192,25 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
                   </div>
                   <div>
                     <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Precio de venta * ($)</label>
-                    <input type="number" value={b.precioVenta || ""} onChange={e => actualizarCampo(b._id, "precioVenta", e.target.value)} style={{ marginTop: 4 }} placeholder="Ej: 89000" />
+                    <input type="number" value={b.precioVenta || ""} onChange={e => actualizarCampo(b._id, "precioVenta", e.target.value)} style={{ marginTop: 4 }} placeholder="Ej: 35000" />
                   </div>
                 </div>
               )}
 
-              {/* Costo unitario */}
               <div>
                 <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Costo de compra ($) — extraído por IA</label>
                 <input type="number" value={b.costoUnitario || ""} onChange={e => actualizarCampo(b._id, "costoUnitario", e.target.value)} style={{ marginTop: 4 }} placeholder="Costo unitario" />
               </div>
 
-              {/* TALLAS */}
               <div>
                 <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600, marginBottom: 8, display: "block" }}>
-                  {esRestock ? "Tallas a agregar al stock actual" : "Tallas y cantidades — extraídas por IA"}
+                  {esRestock ? "Presentaciones a agregar al stock actual" : "Presentaciones y cantidades — extraídas por IA"}
                 </label>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {(b.tallas || []).map((t, idx) => (
                     <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <select value={t.talla || ""} onChange={e => actualizarTalla(b._id, idx, "talla", e.target.value)} style={{ flex: 1 }}>
-                        {ORDEN_TALLAS.map(ta => <option key={ta}>{ta}</option>)}
+                        {ORDEN_PRESENTACIONES.map(ta => <option key={ta}>{ta}</option>)}
                       </select>
                       <input type="number" value={t.cantidad || ""} onChange={e => actualizarTalla(b._id, idx, "cantidad", e.target.value)} style={{ width: 70 }} placeholder="Cant" min="1" />
                       {esRestock && b.stockActualPorTalla?.[t.talla] !== undefined && (
@@ -230,16 +223,13 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
                   ))}
                 </div>
                 <button onClick={() => agregarTalla(b._id)} style={{ marginTop: 8, background: "var(--creme)", border: "1px dashed var(--border)", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--mid)" }}>
-                  + Añadir talla
+                  + Añadir presentación
                 </button>
               </div>
 
-              {/* RESUMEN */}
               <div style={{ background: esRestock ? "#E3F2FD" : "var(--rosa-pale)", borderRadius: 12, padding: "10px 14px", fontSize: 12, color: esRestock ? "#1565C0" : "var(--rosa-deep)", fontWeight: 600 }}>
                 {esRestock ? (
-                  <>
-                    Unidades a sumar: {(b.tallas || []).reduce((s, t) => s + (Number(t.cantidad) || 0), 0)} uds
-                  </>
+                  <>Unidades a sumar: {(b.tallas || []).reduce((s, t) => s + (Number(t.cantidad) || 0), 0)} uds</>
                 ) : (
                   <>
                     Total unidades: {(b.tallas || []).reduce((s, t) => s + (Number(t.cantidad) || 0), 0)} uds
@@ -248,7 +238,6 @@ export default function ColaBorradores({ setPrendas, onCerrar }) {
                 )}
               </div>
 
-              {/* BOTÓN CONFIRMAR */}
               <button
                 onClick={() => confirmarBorrador(b)}
                 disabled={guardando === b._id}
