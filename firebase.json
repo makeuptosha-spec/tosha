@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "target": "tosha",
+    "target": "tosha-c9a7c",
     "public": "dist",
     "ignore": [
       "firebase.json",

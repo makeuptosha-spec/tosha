@@ -5,8 +5,8 @@
   "targets": {
     "tosha-c9a7c": {
       "hosting": {
-        "tosha": [
-          "tosha"
+        "tosha-c9a7c": [
+          "tosha-c9a7c"
         ]
       }
     }
