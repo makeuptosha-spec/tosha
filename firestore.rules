@@ -16,39 +16,59 @@ service cloud.firestore {
       );
     }
 
+    // Perfiles privados: cada documento le pertenece al usuario que lo creó
+    // (campo `uid`). Solo su dueño puede leerlo/editarlo/borrarlo, y solo
+    // puede crear documentos a su propio nombre.
+    function esPropio() {
+      return autorizado() && resource.data.uid == request.auth.uid;
+    }
+    function creaComoPropio() {
+      return autorizado() && request.resource.data.uid == request.auth.uid;
+    }
+
     match /usuariosPermitidos/{email} {
       allow read, write: if autorizado();
     }
 
     match /cuentas/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
     match /movimientos/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
     match /categorias/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
     match /facturasRecurrentes/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
     match /pagosFactura/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
     match /presupuestos/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
     match /deudas/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
     match /metas/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
     match /borradores/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
     match /notas/{docId} {
-      allow read, write: if autorizado();
+      allow read, update, delete: if esPropio();
+      allow create: if creaComoPropio();
     }
 
     // Todo lo demás (colecciones viejas de Tosha u otras) queda bloqueado por defecto.
