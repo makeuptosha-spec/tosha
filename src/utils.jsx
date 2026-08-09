@@ -103,7 +103,7 @@ export const Icon = ({ name, size = 18, color }) => {
 };
 
 export const StatCard = ({ icon, label, value, sub, color = "var(--primary)" }) => (
-  <div className="animate" style={{ background: "var(--white)", borderRadius: 20, padding: "20px 22px", boxShadow: "var(--shadow)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
+  <div className="animate" style={{ background: "var(--white)", borderRadius: 20, padding: "20px 22px", boxShadow: "var(--shadow)", border: `1.5px solid ${color}33`, borderLeft: `4px solid ${color}`, display: "flex", flexDirection: "column", gap: 6 }}>
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
       <span style={{ fontSize: 12, fontWeight: 500, color: "var(--mid)", letterSpacing: 0.5 }}>{label}</span>
       <span style={{ width: 34, height: 34, borderRadius: 10, background: color + "18", color, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={icon} size={16} /></span>

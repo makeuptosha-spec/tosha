@@ -131,7 +131,7 @@ export default function App() {
             </div>
           </div>
 
-          {tab === "inicio" && <Inicio cuentas={cuentas} movimientos={movimientos} facturasRecurrentes={facturasRecurrentes} pagosFactura={pagosFactura} presupuestos={presupuestos} />}
+          {tab === "inicio" && <Inicio cuentas={cuentas} movimientos={movimientos} facturasRecurrentes={facturasRecurrentes} pagosFactura={pagosFactura} presupuestos={presupuestos} deudas={deudas} metas={metas} />}
           {tab === "movimientos" && <Movimientos movimientos={movimientos} setMovimientos={setMovimientos} cuentas={cuentas} />}
           {tab === "cuentas" && <Cuentas cuentas={cuentas} setCuentas={setCuentas} movimientos={movimientos} setMovimientos={setMovimientos} />}
           {tab === "facturas" && <Facturas facturasRecurrentes={facturasRecurrentes} setFacturasRecurrentes={setFacturasRecurrentes} pagosFactura={pagosFactura} setPagosFactura={setPagosFactura} setMovimientos={setMovimientos} cuentas={cuentas} deudas={deudas} setDeudas={setDeudas} />}
