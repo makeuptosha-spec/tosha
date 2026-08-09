@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, deleteDoc, doc } from "firebase/firestore";
-import { fmt, esHoy, esEsteMes, hoyObj, StatCard, ProgressBar, fetchPropio } from "../utils.jsx";
+import { fmt, esHoy, esEsteMes, hoyObj, StatCard, ProgressBar, fetchPropio, TIPOS_CUENTA } from "../utils.jsx";
 import { calcularSaldo } from "./Cuentas.jsx";
 
 const HORA = new Date().getHours();
@@ -109,6 +109,12 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
 
   const balanceTotal = useMemo(() => cuentas.reduce((s, c) => s + calcularSaldo(c, movimientos), 0), [cuentas, movimientos]);
 
+  const balancePorTipo = useMemo(() => {
+    const mapa = {};
+    cuentas.forEach(c => { mapa[c.tipo] = (mapa[c.tipo] || 0) + calcularSaldo(c, movimientos); });
+    return TIPOS_CUENTA.map(t => ({ ...t, monto: mapa[t.id] || 0 })).filter(t => t.monto !== 0 || cuentas.some(c => c.tipo === t.id));
+  }, [cuentas, movimientos]);
+
   const movHoy = movimientosVisibles.filter(m => esHoy(m.fecha));
   const movMes = movimientosVisibles.filter(m => esEsteMes(m.fecha));
   const ingresosMes = movMes.filter(m => m.tipo === "ingreso").reduce((s, m) => s + Number(m.monto), 0);
@@ -186,7 +192,18 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
         <div style={{ position: "absolute", top: -24, right: -24, width: 110, height: 110, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
         <p style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: 13, opacity: 0.88, marginBottom: 2 }}>{SALUDO}</p>
         <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 700, marginBottom: 2 }}>Balance total: {fmt(balanceTotal)}</h2>
-        <p style={{ fontSize: 12, opacity: 0.75 }}>{hoyObj.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}</p>
+        <p style={{ fontSize: 12, opacity: 0.75, marginBottom: balancePorTipo.length > 0 ? 16 : 0 }}>{hoyObj.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}</p>
+
+        {balancePorTipo.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", position: "relative" }}>
+            {balancePorTipo.map(t => (
+              <div key={t.id} style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)", borderRadius: 12, padding: "8px 12px", flex: "1 1 auto", minWidth: 90 }}>
+                <p style={{ fontSize: 10, opacity: 0.8, margin: 0, textTransform: "uppercase", letterSpacing: 0.5 }}>{t.label}</p>
+                <p style={{ fontSize: 14, fontWeight: 800, margin: "2px 0 0" }}>{fmt(t.monto)}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* STATS DEL MES */}

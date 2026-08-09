@@ -19,7 +19,8 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const [mostrarCola, setMostrarCola] = useState(false);
   const [mostrarDictar, setMostrarDictar] = useState(false);
 
-  const formBase = { tipo: "gasto", monto: "", categoria: "", cuentaId: "", descripcion: "", fecha: new Date().toISOString().slice(0, 10) };
+  const cuentaPorDefecto = () => cuentas.find(c => c.tipo === "efectivo")?.id || cuentas[0]?.id || "";
+  const formBase = { tipo: "gasto", monto: "", categoria: "", cuentaId: cuentaPorDefecto(), descripcion: "", fecha: new Date().toISOString().slice(0, 10) };
   const [form, setForm] = useState(formBase);
 
   const showToast = (msg, tipo = "ok") => { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); };
@@ -194,6 +195,13 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
           </select>
         </div>
       </div>
+
+      {cuentas.length === 0 && (
+        <div style={{ background: "#FFF3E0", border: "1.5px solid #FFB74D", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 20 }}>⚠️</span>
+          <p style={{ fontSize: 13, color: "var(--warn)", margin: 0 }}>Todavía no tenés ninguna cuenta creada. Andá a la pestaña <strong>Cuentas</strong> y creá al menos una (por ejemplo "Efectivo") antes de registrar movimientos.</p>
+        </div>
+      )}
 
       {/* FORM */}
       {mostrarForm && (
