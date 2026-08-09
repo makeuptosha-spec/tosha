@@ -4,6 +4,7 @@ import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestor
 import { fmt, fmtNum, parseNum, fmtFecha, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID } from "../utils.jsx";
 import EscanearRecibo from "./EscanearRecibo.jsx";
 import ColaRecibos from "./ColaRecibos.jsx";
+import DictarMovimiento from "./DictarMovimiento.jsx";
 
 export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const [busqueda, setBusqueda] = useState("");
@@ -16,6 +17,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const [toast, setToast] = useState(null);
   const [mostrarEscanear, setMostrarEscanear] = useState(false);
   const [mostrarCola, setMostrarCola] = useState(false);
+  const [mostrarDictar, setMostrarDictar] = useState(false);
 
   const formBase = { tipo: "gasto", monto: "", categoria: "", cuentaId: "", descripcion: "", fecha: new Date().toISOString().slice(0, 10) };
   const [form, setForm] = useState(formBase);
@@ -90,6 +92,34 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
 
   const nombreCuenta = (id) => cuentas.find(c => c.id === id)?.nombre || "Sin cuenta";
 
+  const guardarDictado = async ({ tipo, monto, categoria, descripcion, cuentaId }) => {
+    const datos = { tipo, monto: Number(monto), categoria, cuentaId, descripcion: descripcion || categoria, fecha: new Date().toISOString(), hogarId: HOGAR_ID, fechaCreacion: new Date().toISOString() };
+    try {
+      const ref = await addDoc(collection(db, "movimientos"), datos);
+      setMovimientos(m => [{ id: ref.id, ...datos }, ...m]);
+      setMostrarDictar(false);
+      showToast(tipo === "ingreso" ? "✅ Ingreso registrado por voz" : "✅ Gasto registrado por voz");
+    } catch { showToast("❌ Error al guardar", "danger"); }
+  };
+
+  const exportarCSV = () => {
+    const encabezado = ["Fecha", "Tipo", "Categoría", "Cuenta", "Descripción", "Monto"];
+    const filas = filtrados.map(m => [
+      fmtFecha(m.fecha), m.tipo, m.categoria, nombreCuenta(m.cuentaId),
+      (m.descripcion || "").replace(/"/g, '""'), m.monto
+    ]);
+    const csv = [encabezado, ...filas]
+      .map(fila => fila.map(campo => `"${campo}"`).join(","))
+      .join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `movimientos_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {toast && (
@@ -100,6 +130,10 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
 
       {mostrarEscanear && (
         <EscanearRecibo onBorradorCreado={() => { setMostrarEscanear(false); setMostrarCola(true); }} onClose={() => setMostrarEscanear(false)} />
+      )}
+
+      {mostrarDictar && (
+        <DictarMovimiento cuentas={cuentas} onGuardar={guardarDictado} onClose={() => setMostrarDictar(false)} />
       )}
 
       {/* MODAL ELIMINAR */}
@@ -125,6 +159,12 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
             <input placeholder="Buscar por descripción o categoría..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ paddingLeft: 40, width: "100%" }} />
           </div>
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button onClick={exportarCSV} title="Exportar a CSV" style={{ background: "var(--bg)", color: "var(--mid)", border: "1.5px solid var(--border)", borderRadius: 50, padding: "8px 12px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+              ⬇️ CSV
+            </button>
+            <button onClick={() => setMostrarDictar(true)} style={{ background: "var(--bg)", color: "var(--primary-deep)", border: "1.5px solid var(--primary-soft)", borderRadius: 50, padding: "8px 12px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+              🎤
+            </button>
             <button onClick={() => setMostrarEscanear(true)} style={{ background: "var(--bg)", color: "var(--primary-deep)", border: "1.5px solid var(--primary-soft)", borderRadius: 50, padding: "8px 16px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
               <Icon name="camera" size={14} /> Escanear
             </button>
@@ -234,24 +274,27 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
       {/* LISTA */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {filtrados.length === 0 && <p style={{ fontSize: 13, color: "var(--mid)", padding: "10px", textAlign: "center" }}>No hay movimientos con estos filtros.</p>}
-        {filtrados.map(m => (
+        {filtrados.map(m => {
+          const esAjuste = m.tipo === "ajuste";
+          const esIngreso = m.tipo === "ingreso" || (esAjuste && Number(m.monto) >= 0);
+          return (
           <div key={m.id} className="animate" style={{ background: "var(--white)", borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: m.tipo === "ingreso" ? "#E8F5E9" : "#FFEBEE", color: m.tipo === "ingreso" ? "var(--success)" : "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Icon name={m.tipo === "ingreso" ? "trending" : "trendingDown"} size={16} />
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: esAjuste ? "var(--bg)" : esIngreso ? "#E8F5E9" : "#FFEBEE", color: esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon name={esAjuste ? "edit" : esIngreso ? "trending" : "trendingDown"} size={16} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.descripcion || m.categoria}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{esAjuste ? "⚖️ Ajuste de saldo" : (m.descripcion || m.categoria)}</p>
               <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>{m.categoria} · {nombreCuenta(m.cuentaId)} · {fmtFecha(m.fecha)}</p>
             </div>
-            <p style={{ fontSize: 15, fontWeight: 800, color: m.tipo === "ingreso" ? "var(--success)" : "var(--danger)", margin: 0, flexShrink: 0 }}>
-              {m.tipo === "ingreso" ? "+" : "−"}{fmt(m.monto)}
+            <p style={{ fontSize: 15, fontWeight: 800, color: esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", margin: 0, flexShrink: 0 }}>
+              {esIngreso ? "+" : "−"}{fmt(Math.abs(m.monto))}
             </p>
             <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-              <button onClick={() => abrirEdicion(m)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={13} /></button>
+              {!esAjuste && <button onClick={() => abrirEdicion(m)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={13} /></button>}
               <button onClick={() => setMovAEliminar(m)} style={{ background: "#FFEBEE", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={13} /></button>
             </div>
           </div>
-        ))}
+        );})}
       </div>
     </div>
   );

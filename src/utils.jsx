@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-
 // ── IDENTIDAD DEL HOGAR ──
 // Fijo por ahora (single-user). Cuando se agregue multi-usuario/familia,
 // esto pasa a ser el id del hogar compartido — el resto del modelo de datos
@@ -9,9 +7,9 @@ export const HOGAR_ID = "hogar-principal";
 // ── CATEGORÍAS POR DEFECTO ──
 export const CATEGORIAS_GASTO = [
   "Alimentación", "Transporte", "Vivienda", "Servicios", "Salud",
-  "Entretenimiento", "Educación", "Ropa", "Suscripciones", "Deudas", "Préstamo", "Mascotas", "Otros"
+  "Entretenimiento", "Educación", "Ropa", "Suscripciones", "Deudas", "Préstamo", "Ahorro", "Mascotas", "Otros"
 ];
-export const CATEGORIAS_INGRESO = ["Salario", "Freelance", "Ventas", "Préstamo", "Regalo", "Inversión", "Otros"];
+export const CATEGORIAS_INGRESO = ["Salario", "Freelance", "Ventas", "Préstamo", "Ahorro", "Regalo", "Inversión", "Otros"];
 
 export const TIPOS_CUENTA = [
   { id: "efectivo", label: "Efectivo" },
@@ -65,27 +63,11 @@ export const fmtMes = (mesStr) => {
 };
 
 // ── COMPONENTES BASE Y CARGADOR ──
-export const LoaderInteractivo = () => {
-  const [msg, setMsg] = useState("");
-  useEffect(() => {
-    const frases = [
-      "Cuadrando las cuentas 💰", "Sumando ingresos ✨", "Revisando el presupuesto 📊",
-      "Organizando tus finanzas 🗂️", "Calculando tu balance 🧮", "Poniendo todo en orden ✅",
-      "Cargando tus movimientos 📈", "Verificando tus cuentas 🏦", "Actualizando saldos 🔄",
-      "Preparando tu resumen del mes 📅", "Un momento, casi listo ⏳", "Alineando los números 🔢",
-    ];
-    const ciclo = setInterval(() => setMsg(frases[Math.floor(Math.random() * frases.length)]), 1800);
-    setMsg(frases[Math.floor(Math.random() * frases.length)]);
-    return () => clearInterval(ciclo);
-  }, []);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg)', padding: 20, textAlign: 'center' }}>
-      <div className="pulsing" style={{ fontSize: 50, marginBottom: 20 }}>💚</div>
-      <p style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 600, color: 'var(--primary-deep)', maxWidth: 320, lineHeight: 1.4 }}>{msg}</p>
-    </div>
-  );
-};
+export const LoaderInteractivo = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg)' }}>
+    <div className="spinner" />
+  </div>
+);
 
 export const Badge = ({ children, variant = "default" }) => {
   const styles = { default: { background: "var(--primary-pale)", color: "var(--primary-deep)" }, success: { background: "#E8F5E9", color: "var(--success)" }, warn: { background: "#FFF3E0", color: "var(--warn)" }, danger: { background: "#FFEBEE", color: "var(--danger)" } };
@@ -178,8 +160,10 @@ export const globalStyles = `
 
   @keyframes slideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes pulseLoader { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .animate { animation: slideIn 0.35s ease both; }
   .pulsing { animation: pulseLoader 1.5s infinite ease-in-out; }
+  .spinner { width: 40px; height: 40px; border: 3.5px solid var(--primary-pale); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
 
   .app-wrapper { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 90px; transition: all 0.3s ease; }
   .nav-menu { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: rgba(255,255,255,0.95); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; padding: 10px 0 20px; z-index: 1000; transition: all 0.3s ease; }
