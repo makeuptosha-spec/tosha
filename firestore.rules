@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // App de finanzas personales, un solo hogar hoy. Cualquier usuario autenticado
+    // (solo existe una cuenta en Firebase Auth) puede leer/escribir sus datos.
+    match /cuentas/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /movimientos/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /categorias/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /facturasRecurrentes/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /pagosFactura/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /presupuestos/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /borradores/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /notas/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Todo lo demás (colecciones viejas de Tosha u otras) queda bloqueado por defecto.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
