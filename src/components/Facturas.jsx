@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual } from "../utils.jsx";
 import Deudas from "./Deudas.jsx";
@@ -50,7 +50,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
     if (!form.nombre || !form.montoEstimado || !form.categoria || !form.cuentaId || !form.diaVencimiento) return showToast("⚠️ Completa todos los campos", "warn");
     const datos = {
       nombre: form.nombre, montoEstimado: Number(form.montoEstimado), categoria: form.categoria,
-      cuentaId: form.cuentaId, diaVencimiento: Number(form.diaVencimiento), activa: true, hogarId: HOGAR_ID
+      cuentaId: form.cuentaId, diaVencimiento: Number(form.diaVencimiento), activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
     try {
       if (editandoId) {
@@ -95,12 +95,12 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
       const fecha = new Date().toISOString();
       const nuevoMovimiento = {
         tipo: "gasto", monto: Number(montoPago), categoria: pagando.categoria, cuentaId: cuentaPago,
-        descripcion: pagando.nombre, fecha, facturaRecurrenteId: pagando.id, hogarId: HOGAR_ID, fechaCreacion: fecha
+        descripcion: pagando.nombre, fecha, facturaRecurrenteId: pagando.id, hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
       };
       const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(m => [{ id: movRef.id, ...nuevoMovimiento }, ...m]);
 
-      const nuevoPago = { facturaRecurrenteId: pagando.id, mes: mesActual(), pagado: true, fechaPago: fecha, montoPagado: Number(montoPago), movimientoId: movRef.id, hogarId: HOGAR_ID };
+      const nuevoPago = { facturaRecurrenteId: pagando.id, mes: mesActual(), pagado: true, fechaPago: fecha, montoPagado: Number(montoPago), movimientoId: movRef.id, hogarId: HOGAR_ID, uid: auth.currentUser.uid };
       const pagoRef = await addDoc(collection(db, "pagosFactura"), nuevoPago);
       setPagosFactura(p => [{ id: pagoRef.id, ...nuevoPago }, ...p]);
 

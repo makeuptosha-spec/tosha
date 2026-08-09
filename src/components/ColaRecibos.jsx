@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { collection, getDocs, updateDoc, deleteDoc, doc, addDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, CATEGORIAS_GASTO, HOGAR_ID } from "../utils.jsx";
 
@@ -13,7 +13,7 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
       .then(snap => {
         const data = snap.docs
           .map(d => ({ _id: d.id, ...d.data() }))
-          .filter(b => b.estado === "pendiente" && b.tipo === "gasto")
+          .filter(b => b.estado === "pendiente" && b.tipo === "gasto" && b.uid === auth.currentUser.uid)
           .sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
         setBorradores(data);
       })
@@ -37,7 +37,7 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
         cuentaId: b.cuentaId,
         descripcion: b.comercio || b.descripcion || "Gasto escaneado",
         fecha: new Date(b.fecha || Date.now()).toISOString(),
-        hogarId: HOGAR_ID,
+        hogarId: HOGAR_ID, uid: auth.currentUser.uid,
         fechaCreacion: new Date().toISOString()
       };
       const ref = await addDoc(collection(db, "movimientos"), nuevoMovimiento);

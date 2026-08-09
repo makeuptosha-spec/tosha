@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { db, auth } from "./firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { auth } from "./firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
-import { LoaderInteractivo, Icon, globalStyles } from "./utils.jsx";
+import { LoaderInteractivo, Icon, globalStyles, fetchPropio } from "./utils.jsx";
 import LoginScreen from "./components/LoginScreen.jsx";
 import SignupScreen from "./components/SignupScreen.jsx";
 import Inicio from "./components/Inicio.jsx";
@@ -40,22 +39,23 @@ export default function App() {
     setNoAutorizado(false);
     const fetchData = async () => {
       try {
-        const [cuentasSnap, movSnap, facSnap, pagosSnap, presSnap, deudasSnap, metasSnap] = await Promise.all([
-          getDocs(collection(db, "cuentas")),
-          getDocs(collection(db, "movimientos")),
-          getDocs(collection(db, "facturasRecurrentes")),
-          getDocs(collection(db, "pagosFactura")),
-          getDocs(collection(db, "presupuestos")),
-          getDocs(collection(db, "deudas")),
-          getDocs(collection(db, "metas")),
+        const uid = usuario.uid;
+        const [cuentasP, movP, facP, pagosP, presP, deudasP, metasP] = await Promise.all([
+          fetchPropio("cuentas", uid),
+          fetchPropio("movimientos", uid),
+          fetchPropio("facturasRecurrentes", uid),
+          fetchPropio("pagosFactura", uid),
+          fetchPropio("presupuestos", uid),
+          fetchPropio("deudas", uid),
+          fetchPropio("metas", uid),
         ]);
-        setCuentas(cuentasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setMovimientos(movSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setFacturasRecurrentes(facSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setPagosFactura(pagosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setPresupuestos(presSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setDeudas(deudasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setMetas(metasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setCuentas(cuentasP);
+        setMovimientos(movP);
+        setFacturasRecurrentes(facP);
+        setPagosFactura(pagosP);
+        setPresupuestos(presP);
+        setDeudas(deudasP);
+        setMetas(metasP);
       } catch (error) {
         console.error(error);
         if (error.code === "permission-denied") setNoAutorizado(true);

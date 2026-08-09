@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { db } from "../firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc } from "firebase/firestore";
-import { fmt, esHoy, esEsteMes, hoyObj, StatCard, ProgressBar } from "../utils.jsx";
+import { db, auth } from "../firebase";
+import { collection, addDoc, deleteDoc, doc } from "firebase/firestore";
+import { fmt, esHoy, esEsteMes, hoyObj, StatCard, ProgressBar, fetchPropio } from "../utils.jsx";
 import { calcularSaldo } from "./Cuentas.jsx";
 
 const HORA = new Date().getHours();
@@ -83,8 +83,8 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
   const [guardandoNota, setGuardandoNota] = useState(false);
 
   useEffect(() => {
-    getDocs(collection(db, "notas"))
-      .then(snap => setNotas(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.fecha) - new Date(a.fecha))))
+    fetchPropio("notas", auth.currentUser.uid)
+      .then(docs => setNotas(docs.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))))
       .catch(() => {});
   }, []);
 
@@ -93,7 +93,7 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
     if (!texto) return;
     setGuardandoNota(true);
     try {
-      const nueva = { texto, fecha: new Date().toISOString() };
+      const nueva = { texto, fecha: new Date().toISOString(), uid: auth.currentUser.uid };
       const ref = await addDoc(collection(db, "notas"), nueva);
       setNotas(n => [{ id: ref.id, ...nueva }, ...n]);
       setNotaTexto("");

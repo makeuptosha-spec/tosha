@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, esEsteMes, Icon, ProgressBar, CATEGORIAS_GASTO, HOGAR_ID } from "../utils.jsx";
 import MetasAhorro from "./MetasAhorro.jsx";
@@ -39,7 +39,7 @@ export default function Presupuestos({ presupuestos, setPresupuestos, movimiento
 
   const guardar = async () => {
     if (!form.categoria || !form.limiteMensual) return showToast("⚠️ Completa categoría y límite", "warn");
-    const datos = { categoria: form.categoria, limiteMensual: Number(form.limiteMensual), hogarId: HOGAR_ID };
+    const datos = { categoria: form.categoria, limiteMensual: Number(form.limiteMensual), hogarId: HOGAR_ID, uid: auth.currentUser.uid };
     try {
       if (editandoId) {
         await updateDoc(doc(db, "presupuestos", editandoId), datos);
