@@ -161,9 +161,11 @@ export const globalStyles = `
   @keyframes slideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes pulseLoader { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes moneyFloat { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-8px) rotate(6deg); } }
   .animate { animation: slideIn 0.35s ease both; }
   .pulsing { animation: pulseLoader 1.5s infinite ease-in-out; }
   .spinner { width: 40px; height: 40px; border: 3.5px solid var(--primary-pale); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  .money-float { display: inline-block; animation: moneyFloat 2.4s ease-in-out infinite; }
 
   .app-wrapper { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 90px; transition: all 0.3s ease; }
   .nav-menu { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: rgba(255,255,255,0.95); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; padding: 10px 0 20px; z-index: 1000; transition: all 0.3s ease; }

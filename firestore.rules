@@ -2,37 +2,46 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // App de finanzas personales, un solo hogar hoy. Cualquier usuario autenticado
-    // (solo existe una cuenta en Firebase Auth) puede leer/escribir sus datos.
+
+    // Lista blanca de correos autorizados a leer/escribir el hogar compartido.
+    // Registrarse en la app crea la cuenta de Auth, pero sin estar en esta
+    // lista no se accede a ningún dato. Agregar un correo nuevo = editar esta
+    // lista y desplegar reglas de nuevo (firebase deploy --only firestore:rules).
+    function autorizado() {
+      return request.auth != null && request.auth.token.email in [
+        "makeuptosha@gmail.com"
+      ];
+    }
+
     match /cuentas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /movimientos/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /categorias/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /facturasRecurrentes/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /pagosFactura/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /presupuestos/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /deudas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /metas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /borradores/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /notas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
 
     // Todo lo demás (colecciones viejas de Tosha u otras) queda bloqueado por defecto.
