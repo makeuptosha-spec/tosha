@@ -2,37 +2,53 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // App de finanzas personales, un solo hogar hoy. Cualquier usuario autenticado
-    // (solo existe una cuenta en Firebase Auth) puede leer/escribir sus datos.
+
+    // Dueño de respaldo — nunca queda bloqueado aunque se borre la colección
+    // usuariosPermitidos por error. El resto de usuarios se gestiona desde
+    // la propia app (panel Usuarios), sin tocar código ni redesplegar reglas.
+    function esDueno() {
+      return request.auth != null && request.auth.token.email == "makeuptosha@gmail.com";
+    }
+    function autorizado() {
+      return request.auth != null && (
+        esDueno() ||
+        exists(/databases/$(database)/documents/usuariosPermitidos/$(request.auth.token.email))
+      );
+    }
+
+    match /usuariosPermitidos/{email} {
+      allow read, write: if autorizado();
+    }
+
     match /cuentas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /movimientos/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /categorias/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /facturasRecurrentes/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /pagosFactura/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /presupuestos/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /deudas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /metas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /borradores/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
     match /notas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if autorizado();
     }
 
     // Todo lo demás (colecciones viejas de Tosha u otras) queda bloqueado por defecto.
