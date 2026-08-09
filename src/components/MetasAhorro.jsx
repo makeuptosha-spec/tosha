@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, fmtFecha, Icon, ProgressBar, HOGAR_ID } from "../utils.jsx";
 
@@ -29,7 +29,7 @@ export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }
 
   const guardar = async () => {
     if (!form.nombre || !form.montoObjetivo) return showToast("⚠️ Completa nombre y objetivo", "warn");
-    const datos = { nombre: form.nombre, montoObjetivo: Number(form.montoObjetivo), fechaObjetivo: form.fechaObjetivo || null, activa: true, hogarId: HOGAR_ID };
+    const datos = { nombre: form.nombre, montoObjetivo: Number(form.montoObjetivo), fechaObjetivo: form.fechaObjetivo || null, activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid };
     try {
       if (editandoId) {
         await updateDoc(doc(db, "metas", editandoId), datos);
@@ -75,7 +75,7 @@ export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }
       const nuevoMovimiento = {
         tipo: esAporte ? "gasto" : "ingreso", monto, categoria: "Ahorro", cuentaId: cuentaMov,
         descripcion: `${esAporte ? "Aporte a" : "Retiro de"} meta: ${meta.nombre}`, fecha, metaId: meta.id,
-        hogarId: HOGAR_ID, fechaCreacion: fecha
+        hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
       };
       const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(mv => [{ id: movRef.id, ...nuevoMovimiento }, ...mv]);

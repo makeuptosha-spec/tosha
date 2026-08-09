@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, fmtFecha, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID } from "../utils.jsx";
 import EscanearRecibo from "./EscanearRecibo.jsx";
@@ -58,7 +58,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
     if (!form.monto || !form.categoria || !form.cuentaId) return showToast("⚠️ Completa monto, categoría y cuenta", "warn");
     const datos = {
       tipo: form.tipo, monto: Number(form.monto), categoria: form.categoria, cuentaId: form.cuentaId,
-      descripcion: form.descripcion, fecha: new Date(form.fecha).toISOString(), hogarId: HOGAR_ID
+      descripcion: form.descripcion, fecha: new Date(form.fecha).toISOString(), hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
     try {
       if (editandoId) {
@@ -93,7 +93,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const nombreCuenta = (id) => cuentas.find(c => c.id === id)?.nombre || "Sin cuenta";
 
   const guardarDictado = async ({ tipo, monto, categoria, descripcion, cuentaId }) => {
-    const datos = { tipo, monto: Number(monto), categoria, cuentaId, descripcion: descripcion || categoria, fecha: new Date().toISOString(), hogarId: HOGAR_ID, fechaCreacion: new Date().toISOString() };
+    const datos = { tipo, monto: Number(monto), categoria, cuentaId, descripcion: descripcion || categoria, fecha: new Date().toISOString(), hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: new Date().toISOString() };
     try {
       const ref = await addDoc(collection(db, "movimientos"), datos);
       setMovimientos(m => [{ id: ref.id, ...datos }, ...m]);

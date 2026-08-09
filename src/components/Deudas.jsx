@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, Icon, ProgressBar, HOGAR_ID } from "../utils.jsx";
 
@@ -36,7 +36,7 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
       nombre: form.nombre, tipo: form.tipo, montoPrincipal: Number(form.montoPrincipal),
       tasaInteresAnual: form.tasaInteresAnual ? Number(form.tasaInteresAnual) : null,
       cuotaMensual: form.cuotaMensual ? Number(form.cuotaMensual) : null,
-      cuentaId: form.cuentaId, activa: true, hogarId: HOGAR_ID
+      cuentaId: form.cuentaId, activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
     try {
       if (editandoId) {
@@ -83,7 +83,7 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
       const nuevoMovimiento = {
         tipo: esDebo ? "gasto" : "ingreso", monto: abono, categoria: esDebo ? "Deudas" : "Préstamo",
         cuentaId: cuentaAbono, descripcion: `Abono: ${abonando.nombre}`, fecha, deudaId: abonando.id,
-        hogarId: HOGAR_ID, fechaCreacion: fecha
+        hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
       };
       const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(m => [{ id: movRef.id, ...nuevoMovimiento }, ...m]);

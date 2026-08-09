@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { CATEGORIAS_GASTO, HOGAR_ID } from "../utils.jsx";
 
@@ -120,7 +120,7 @@ export default function EscanearRecibo({ onBorradorCreado, onClose }) {
         estado: "pendiente",
         fecha: datos.fecha || new Date().toISOString().slice(0, 10),
         categoriaSugerida: CATEGORIAS_GASTO.includes(datos.categoriaSugerida) ? datos.categoriaSugerida : "Otros",
-        hogarId: HOGAR_ID,
+        hogarId: HOGAR_ID, uid: auth.currentUser.uid,
         fechaCreacion: new Date().toISOString()
       });
 

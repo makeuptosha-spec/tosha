@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, Icon, TIPOS_CUENTA, HOGAR_ID } from "../utils.jsx";
 
@@ -46,7 +46,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
 
   const guardar = async () => {
     if (!form.nombre || form.saldoInicial === "") return showToast("⚠️ Completa nombre y saldo inicial", "warn");
-    const datos = { nombre: form.nombre, tipo: form.tipo, saldoInicial: Number(form.saldoInicial), activa: true, hogarId: HOGAR_ID };
+    const datos = { nombre: form.nombre, tipo: form.tipo, saldoInicial: Number(form.saldoInicial), activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid };
     try {
       if (editandoId) {
         await updateDoc(doc(db, "cuentas", editandoId), datos);
@@ -89,7 +89,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       await addDoc(collection(db, "movimientos"), {
         tipo: "transferencia", monto: Number(monto), cuentaId, cuentaDestinoId,
         categoria: "Transferencia", descripcion: transferForm.descripcion || "Transferencia entre cuentas",
-        fecha: new Date().toISOString(), hogarId: HOGAR_ID, fechaCreacion: new Date().toISOString()
+        fecha: new Date().toISOString(), hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: new Date().toISOString()
       });
       showToast("✅ Transferencia realizada");
       setTransferForm(transferBase); setMostrarTransferencia(false);
@@ -109,7 +109,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       const fecha = new Date().toISOString();
       const nuevoMovimiento = {
         tipo: "ajuste", monto: diferencia, categoria: "Ajuste de saldo", cuentaId: ajustando.id,
-        descripcion: "Conciliación con saldo real", fecha, hogarId: HOGAR_ID, fechaCreacion: fecha
+        descripcion: "Conciliación con saldo real", fecha, hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
       };
       const ref = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(m => [{ id: ref.id, ...nuevoMovimiento }, ...m]);
