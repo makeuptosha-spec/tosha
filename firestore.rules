@@ -3,14 +3,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Lista blanca de correos autorizados a leer/escribir el hogar compartido.
-    // Registrarse en la app crea la cuenta de Auth, pero sin estar en esta
-    // lista no se accede a ningún dato. Agregar un correo nuevo = editar esta
-    // lista y desplegar reglas de nuevo (firebase deploy --only firestore:rules).
+    // Dueño de respaldo — nunca queda bloqueado aunque se borre la colección
+    // usuariosPermitidos por error. El resto de usuarios se gestiona desde
+    // la propia app (panel Usuarios), sin tocar código ni redesplegar reglas.
+    function esDueno() {
+      return request.auth != null && request.auth.token.email == "makeuptosha@gmail.com";
+    }
     function autorizado() {
-      return request.auth != null && request.auth.token.email in [
-        "makeuptosha@gmail.com"
-      ];
+      return request.auth != null && (
+        esDueno() ||
+        exists(/databases/$(database)/documents/usuariosPermitidos/$(request.auth.token.email))
+      );
+    }
+
+    match /usuariosPermitidos/{email} {
+      allow read, write: if autorizado();
     }
 
     match /cuentas/{docId} {
