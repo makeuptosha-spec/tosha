@@ -4,6 +4,7 @@ import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestor
 import { fmt, fmtNum, parseNum, fmtFecha, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID } from "../utils.jsx";
 import EscanearRecibo from "./EscanearRecibo.jsx";
 import ColaRecibos from "./ColaRecibos.jsx";
+import DictarMovimiento from "./DictarMovimiento.jsx";
 
 export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const [busqueda, setBusqueda] = useState("");
@@ -16,6 +17,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const [toast, setToast] = useState(null);
   const [mostrarEscanear, setMostrarEscanear] = useState(false);
   const [mostrarCola, setMostrarCola] = useState(false);
+  const [mostrarDictar, setMostrarDictar] = useState(false);
 
   const formBase = { tipo: "gasto", monto: "", categoria: "", cuentaId: "", descripcion: "", fecha: new Date().toISOString().slice(0, 10) };
   const [form, setForm] = useState(formBase);
@@ -90,6 +92,16 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
 
   const nombreCuenta = (id) => cuentas.find(c => c.id === id)?.nombre || "Sin cuenta";
 
+  const guardarDictado = async ({ tipo, monto, categoria, descripcion, cuentaId }) => {
+    const datos = { tipo, monto: Number(monto), categoria, cuentaId, descripcion: descripcion || categoria, fecha: new Date().toISOString(), hogarId: HOGAR_ID, fechaCreacion: new Date().toISOString() };
+    try {
+      const ref = await addDoc(collection(db, "movimientos"), datos);
+      setMovimientos(m => [{ id: ref.id, ...datos }, ...m]);
+      setMostrarDictar(false);
+      showToast(tipo === "ingreso" ? "✅ Ingreso registrado por voz" : "✅ Gasto registrado por voz");
+    } catch { showToast("❌ Error al guardar", "danger"); }
+  };
+
   const exportarCSV = () => {
     const encabezado = ["Fecha", "Tipo", "Categoría", "Cuenta", "Descripción", "Monto"];
     const filas = filtrados.map(m => [
@@ -120,6 +132,10 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
         <EscanearRecibo onBorradorCreado={() => { setMostrarEscanear(false); setMostrarCola(true); }} onClose={() => setMostrarEscanear(false)} />
       )}
 
+      {mostrarDictar && (
+        <DictarMovimiento cuentas={cuentas} onGuardar={guardarDictado} onClose={() => setMostrarDictar(false)} />
+      )}
+
       {/* MODAL ELIMINAR */}
       {movAEliminar && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -145,6 +161,9 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
             <button onClick={exportarCSV} title="Exportar a CSV" style={{ background: "var(--bg)", color: "var(--mid)", border: "1.5px solid var(--border)", borderRadius: 50, padding: "8px 12px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
               ⬇️ CSV
+            </button>
+            <button onClick={() => setMostrarDictar(true)} style={{ background: "var(--bg)", color: "var(--primary-deep)", border: "1.5px solid var(--primary-soft)", borderRadius: 50, padding: "8px 12px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+              🎤
             </button>
             <button onClick={() => setMostrarEscanear(true)} style={{ background: "var(--bg)", color: "var(--primary-deep)", border: "1.5px solid var(--primary-soft)", borderRadius: 50, padding: "8px 16px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
               <Icon name="camera" size={14} /> Escanear
