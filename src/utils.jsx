@@ -1,29 +1,18 @@
 import { db } from "./firebase.js";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 // ── IDENTIDAD DEL HOGAR (campo legado, ya no se usa pa aislar datos) ──
 export const HOGAR_ID = "hogar-principal";
 
 // ── PERFILES PRIVADOS POR USUARIO ──
-// Trae una colección y devuelve solo los docs del usuario actual (uid).
-// Los docs viejos sin campo `uid` (creados antes de perfiles privados) se
-// migran automáticamente al primer usuario que los cargue — asume que ese
-// usuario es el dueño legado de esos datos, cierto hoy porque solo existía
-// una cuenta antes de este cambio.
+// Trae solo los docs del usuario actual. La consulta va filtrada por `uid`
+// porque las reglas de Firestore exigen que el propio query esté acotado
+// (un getDocs de la colección entera sin filtro se rechaza por completo,
+// incluso pa el dueño, aunque todos los docs ya tengan uid). La migración
+// de docs viejos sin `uid` ya se hizo una sola vez con las reglas viejas.
 export async function fetchPropio(nombreColeccion, uid) {
-  const snap = await getDocs(collection(db, nombreColeccion));
-  const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  const propios = [];
-  const migraciones = [];
-  for (const d of docs) {
-    if (!d.uid) {
-      migraciones.push(updateDoc(doc(db, nombreColeccion, d.id), { uid }).catch(() => {}));
-      d.uid = uid;
-    }
-    if (d.uid === uid) propios.push(d);
-  }
-  if (migraciones.length) await Promise.all(migraciones);
-  return propios;
+  const snap = await getDocs(query(collection(db, nombreColeccion), where("uid", "==", uid)));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 // ── CATEGORÍAS POR DEFECTO ──

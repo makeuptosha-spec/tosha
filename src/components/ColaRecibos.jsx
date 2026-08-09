@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
-import { collection, getDocs, updateDoc, deleteDoc, doc, addDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, updateDoc, deleteDoc, doc, addDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, CATEGORIAS_GASTO, HOGAR_ID } from "../utils.jsx";
 
 export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
@@ -9,11 +9,11 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
   const [guardando, setGuardando]   = useState(null);
 
   useEffect(() => {
-    getDocs(collection(db, "borradores"))
+    getDocs(query(collection(db, "borradores"), where("uid", "==", auth.currentUser.uid)))
       .then(snap => {
         const data = snap.docs
           .map(d => ({ _id: d.id, ...d.data() }))
-          .filter(b => b.estado === "pendiente" && b.tipo === "gasto" && b.uid === auth.currentUser.uid)
+          .filter(b => b.estado === "pendiente" && b.tipo === "gasto")
           .sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
         setBorradores(data);
       })
