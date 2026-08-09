@@ -2,10 +2,12 @@ import { useState, useMemo } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, esEsteMes, Icon, ProgressBar, CATEGORIAS_GASTO, HOGAR_ID } from "../utils.jsx";
+import MetasAhorro from "./MetasAhorro.jsx";
 
 const colorPct = (pct) => pct >= 100 ? "var(--danger)" : pct >= 80 ? "var(--warn)" : "var(--success)";
 
-export default function Presupuestos({ presupuestos, setPresupuestos, movimientos }) {
+export default function Presupuestos({ presupuestos, setPresupuestos, movimientos, metas, setMetas, cuentas, setMovimientos }) {
+  const [vista, setVista] = useState("presupuestos");
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [presupuestoAEliminar, setPresupuestoAEliminar] = useState(null);
@@ -67,8 +69,25 @@ export default function Presupuestos({ presupuestos, setPresupuestos, movimiento
     } catch { showToast("❌ Error al eliminar", "danger"); }
   };
 
+  const toggleBar = (
+    <div style={{ display: "flex", gap: 8, background: "var(--white)", padding: 6, borderRadius: 14, border: "1px solid var(--border)" }}>
+      <button onClick={() => setVista("presupuestos")} style={{ flex: 1, background: vista === "presupuestos" ? "linear-gradient(135deg, var(--primary-deep), var(--primary))" : "transparent", color: vista === "presupuestos" ? "#fff" : "var(--mid)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 700 }}>🎯 Presupuestos</button>
+      <button onClick={() => setVista("ahorro")} style={{ flex: 1, background: vista === "ahorro" ? "linear-gradient(135deg, var(--primary-deep), var(--primary))" : "transparent", color: vista === "ahorro" ? "#fff" : "var(--mid)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 700 }}>💰 Ahorro</button>
+    </div>
+  );
+
+  if (vista === "ahorro") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {toggleBar}
+        <MetasAhorro metas={metas} setMetas={setMetas} cuentas={cuentas} setMovimientos={setMovimientos} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {toggleBar}
       {toast && (
         <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--dark)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
           {toast.msg}

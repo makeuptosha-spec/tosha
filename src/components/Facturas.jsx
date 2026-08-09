@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual } from "../utils.jsx";
+import Deudas from "./Deudas.jsx";
 
 const estadoFactura = (factura, pagosFactura) => {
   const mes = mesActual();
@@ -18,7 +19,8 @@ const ESTILO_ESTADO = {
   pendiente:{ bg: "var(--accent-pale)", color: "var(--accent)", label: "⏳ Pendiente" },
 };
 
-export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, pagosFactura, setPagosFactura, setMovimientos, cuentas }) {
+export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, pagosFactura, setPagosFactura, setMovimientos, cuentas, deudas, setDeudas }) {
+  const [vista, setVista] = useState("fijas");
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [facturaAEliminar, setFacturaAEliminar] = useState(null);
@@ -108,8 +110,25 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
     finally { setGuardandoPago(false); }
   };
 
+  const toggleBar = (
+    <div style={{ display: "flex", gap: 8, background: "var(--white)", padding: 6, borderRadius: 14, border: "1px solid var(--border)" }}>
+      <button onClick={() => setVista("fijas")} style={{ flex: 1, background: vista === "fijas" ? "linear-gradient(135deg, var(--primary-deep), var(--primary))" : "transparent", color: vista === "fijas" ? "#fff" : "var(--mid)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 700 }}>🧾 Facturas fijas</button>
+      <button onClick={() => setVista("deudas")} style={{ flex: 1, background: vista === "deudas" ? "linear-gradient(135deg, var(--primary-deep), var(--primary))" : "transparent", color: vista === "deudas" ? "#fff" : "var(--mid)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 700 }}>🤝 Préstamos y deudas</button>
+    </div>
+  );
+
+  if (vista === "deudas") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {toggleBar}
+        <Deudas deudas={deudas} setDeudas={setDeudas} setMovimientos={setMovimientos} cuentas={cuentas} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {toggleBar}
       {toast && (
         <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--dark)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
           {toast.msg}

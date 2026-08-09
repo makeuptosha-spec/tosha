@@ -12,17 +12,21 @@ export const calcularSaldo = (cuenta, movimientos) => {
       if (m.cuentaId === cuenta.id) saldo -= Number(m.monto);
       if (m.cuentaDestinoId === cuenta.id) saldo += Number(m.monto);
     }
+    else if (m.tipo === "ajuste" && m.cuentaId === cuenta.id) saldo += Number(m.monto);
   });
   return saldo;
 };
 
 const iconoTipo = (tipo) => ({ efectivo: "money", banco: "wallet", tarjeta_credito: "tag", ahorros: "target", otro: "wallet" }[tipo] || "wallet");
 
-export default function Cuentas({ cuentas, setCuentas, movimientos }) {
+export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimientos }) {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [mostrarTransferencia, setMostrarTransferencia] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [cuentaAEliminar, setCuentaAEliminar] = useState(null);
+  const [ajustando, setAjustando] = useState(null);
+  const [saldoReal, setSaldoReal] = useState("");
+  const [guardandoAjuste, setGuardandoAjuste] = useState(false);
   const [toast, setToast] = useState(null);
 
   const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "" };
@@ -91,6 +95,28 @@ export default function Cuentas({ cuentas, setCuentas, movimientos }) {
       setTransferForm(transferBase); setMostrarTransferencia(false);
     } catch { showToast("❌ Error en la transferencia", "danger"); }
     finally { setEnviandoTransfer(false); }
+  };
+
+  const abrirAjuste = (c) => { setAjustando(c); setSaldoReal(String(Math.round(calcularSaldo(c, movimientos)))); };
+
+  const confirmarAjuste = async () => {
+    if (!ajustando || saldoReal === "") return;
+    setGuardandoAjuste(true);
+    try {
+      const saldoActual = calcularSaldo(ajustando, movimientos);
+      const diferencia = Number(saldoReal) - saldoActual;
+      if (diferencia === 0) { showToast("Ya estaban iguales, nada que ajustar"); setAjustando(null); return; }
+      const fecha = new Date().toISOString();
+      const nuevoMovimiento = {
+        tipo: "ajuste", monto: diferencia, categoria: "Ajuste de saldo", cuentaId: ajustando.id,
+        descripcion: "Conciliación con saldo real", fecha, hogarId: HOGAR_ID, fechaCreacion: fecha
+      };
+      const ref = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
+      setMovimientos(m => [{ id: ref.id, ...nuevoMovimiento }, ...m]);
+      showToast(`✅ Saldo ajustado (${diferencia > 0 ? "+" : ""}${fmt(diferencia)})`);
+      setAjustando(null); setSaldoReal("");
+    } catch { showToast("❌ Error al ajustar", "danger"); }
+    finally { setGuardandoAjuste(false); }
   };
 
   return (
@@ -182,6 +208,24 @@ export default function Cuentas({ cuentas, setCuentas, movimientos }) {
         </div>
       )}
 
+      {/* MODAL AJUSTAR SALDO */}
+      {ajustando && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="animate" style={{ background: "white", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
+            <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 6 }}>Ajustar "{ajustando.nombre}"</h3>
+            <p style={{ fontSize: 12, color: "var(--mid)", marginBottom: 16 }}>Saldo en la app: <strong>{fmt(calcularSaldo(ajustando, movimientos))}</strong> — poné el saldo real (ej: el que ves en el banco) y se crea un ajuste automático por la diferencia.</p>
+            <label style={{ fontSize: 11, color: "var(--mid)" }}>Saldo real</label>
+            <input type="text" value={saldoReal ? fmtNum(saldoReal) : ""} onChange={e => setSaldoReal(parseNum(e.target.value))} autoFocus />
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={() => setAjustando(null)} style={{ flex: 1, background: "var(--border)", color: "var(--dark)", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>Cancelar</button>
+              <button onClick={confirmarAjuste} disabled={guardandoAjuste} style={{ flex: 1, background: "var(--success)", color: "white", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>
+                {guardandoAjuste ? "Guardando…" : "✅ Ajustar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL ELIMINAR */}
       {cuentaAEliminar && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -219,6 +263,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos }) {
               <p style={{ fontSize: 16, fontWeight: 800, color: c.saldo < 0 ? "var(--danger)" : "var(--dark)", margin: 0 }}>{fmt(c.saldo)}</p>
             </div>
             <div style={{ display: "flex", gap: 4 }}>
+              <button onClick={() => abrirAjuste(c)} title="Ajustar saldo" style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚖️</button>
               <button onClick={() => abrirEdicion(c)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={14} /></button>
               <button onClick={() => setCuentaAEliminar(c)} style={{ background: "#FFEBEE", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={14} /></button>
             </div>

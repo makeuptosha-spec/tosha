@@ -19,6 +19,8 @@ export default function App() {
   const [facturasRecurrentes, setFacturasRecurrentes] = useState([]);
   const [pagosFactura, setPagosFactura] = useState([]);
   const [presupuestos, setPresupuestos] = useState([]);
+  const [deudas, setDeudas] = useState([]);
+  const [metas, setMetas] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -30,18 +32,22 @@ export default function App() {
     if (!usuario) return;
     const fetchData = async () => {
       try {
-        const [cuentasSnap, movSnap, facSnap, pagosSnap, presSnap] = await Promise.all([
+        const [cuentasSnap, movSnap, facSnap, pagosSnap, presSnap, deudasSnap, metasSnap] = await Promise.all([
           getDocs(collection(db, "cuentas")),
           getDocs(collection(db, "movimientos")),
           getDocs(collection(db, "facturasRecurrentes")),
           getDocs(collection(db, "pagosFactura")),
           getDocs(collection(db, "presupuestos")),
+          getDocs(collection(db, "deudas")),
+          getDocs(collection(db, "metas")),
         ]);
         setCuentas(cuentasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         setMovimientos(movSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         setFacturasRecurrentes(facSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         setPagosFactura(pagosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         setPresupuestos(presSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setDeudas(deudasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setMetas(metasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (error) { console.error(error); }
       finally { setCargando(false); }
     };
@@ -86,9 +92,9 @@ export default function App() {
 
           {tab === "inicio" && <Inicio cuentas={cuentas} movimientos={movimientos} facturasRecurrentes={facturasRecurrentes} pagosFactura={pagosFactura} presupuestos={presupuestos} />}
           {tab === "movimientos" && <Movimientos movimientos={movimientos} setMovimientos={setMovimientos} cuentas={cuentas} />}
-          {tab === "cuentas" && <Cuentas cuentas={cuentas} setCuentas={setCuentas} movimientos={movimientos} />}
-          {tab === "facturas" && <Facturas facturasRecurrentes={facturasRecurrentes} setFacturasRecurrentes={setFacturasRecurrentes} pagosFactura={pagosFactura} setPagosFactura={setPagosFactura} setMovimientos={setMovimientos} cuentas={cuentas} />}
-          {tab === "presupuestos" && <Presupuestos presupuestos={presupuestos} setPresupuestos={setPresupuestos} movimientos={movimientos} />}
+          {tab === "cuentas" && <Cuentas cuentas={cuentas} setCuentas={setCuentas} movimientos={movimientos} setMovimientos={setMovimientos} />}
+          {tab === "facturas" && <Facturas facturasRecurrentes={facturasRecurrentes} setFacturasRecurrentes={setFacturasRecurrentes} pagosFactura={pagosFactura} setPagosFactura={setPagosFactura} setMovimientos={setMovimientos} cuentas={cuentas} deudas={deudas} setDeudas={setDeudas} />}
+          {tab === "presupuestos" && <Presupuestos presupuestos={presupuestos} setPresupuestos={setPresupuestos} movimientos={movimientos} metas={metas} setMetas={setMetas} cuentas={cuentas} setMovimientos={setMovimientos} />}
         </div>
 
         <nav className="nav-menu no-print">

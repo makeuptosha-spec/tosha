@@ -9,9 +9,9 @@ export const HOGAR_ID = "hogar-principal";
 // ── CATEGORÍAS POR DEFECTO ──
 export const CATEGORIAS_GASTO = [
   "Alimentación", "Transporte", "Vivienda", "Servicios", "Salud",
-  "Entretenimiento", "Educación", "Ropa", "Suscripciones", "Deudas", "Préstamo", "Mascotas", "Otros"
+  "Entretenimiento", "Educación", "Ropa", "Suscripciones", "Deudas", "Préstamo", "Ahorro", "Mascotas", "Otros"
 ];
-export const CATEGORIAS_INGRESO = ["Salario", "Freelance", "Ventas", "Préstamo", "Regalo", "Inversión", "Otros"];
+export const CATEGORIAS_INGRESO = ["Salario", "Freelance", "Ventas", "Préstamo", "Ahorro", "Regalo", "Inversión", "Otros"];
 
 export const TIPOS_CUENTA = [
   { id: "efectivo", label: "Efectivo" },
