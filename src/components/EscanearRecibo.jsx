@@ -77,8 +77,11 @@ async function llamarGroq(base64, mediaType = "image/png") {
     throw new Error(err.error?.message || `HTTP ${res.status}`);
   }
   const data = await res.json();
-  const texto = data.choices?.[0]?.message?.content?.trim();
+  let texto = data.choices?.[0]?.message?.content?.trim();
   if (!texto) throw new Error("Groq no devolvió respuesta");
+  // qwen3.6 es modelo de razonamiento: antepone un bloque <think>...</think>
+  // con su análisis antes de la respuesta real — hay que descartarlo.
+  texto = texto.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
   const jsonStr = texto.startsWith("{") ? texto : texto.match(/\{[\s\S]*\}/)?.[0];
   if (!jsonStr) throw new Error("La IA no devolvió JSON válido");
   return JSON.parse(jsonStr);
