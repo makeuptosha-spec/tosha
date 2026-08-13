@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
 import { collection, getDocs, query, where, updateDoc, deleteDoc, doc, addDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, hoyLocal, CATEGORIAS_GASTO, HOGAR_ID } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, hoyLocal, CATEGORIAS_GASTO, HOGAR_ID, iconoCuenta } from "../utils.jsx";
 
 export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
   const [borradores, setBorradores] = useState([]);
@@ -100,7 +100,7 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
                 <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Cuenta</label>
                 <select value={b.cuentaId || ""} onChange={e => actualizarCampo(b._id, "cuentaId", e.target.value)} style={{ marginTop: 4 }}>
                   <option value="">Selecciona…</option>
-                  {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  {cuentas.map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
                 </select>
               </div>
             </div>

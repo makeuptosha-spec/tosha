@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, ProgressBar, HOGAR_ID } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, ProgressBar, HOGAR_ID, iconoCuenta } from "../utils.jsx";
 
 export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -142,7 +142,7 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
               <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuenta asociada</label>
               <select value={form.cuentaId} onChange={e => setForm({ ...form, cuentaId: e.target.value })}>
                 <option value="">Selecciona…</option>
-                {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                {cuentas.map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
               </select>
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
               <div>
                 <label style={{ fontSize: 11, color: "var(--mid)" }}>{abonando.tipo === "debo" ? "Cuenta desde donde pagas" : "Cuenta donde recibes"}</label>
                 <select value={cuentaAbono} onChange={e => setCuentaAbono(e.target.value)}>
-                  {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  {cuentas.map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
                 </select>
               </div>
             </div>

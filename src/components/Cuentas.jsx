@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta } from "../utils.jsx";
 
 export const calcularSaldo = (cuenta, movimientos) => {
   let saldo = Number(cuenta.saldoInicial) || 0;
@@ -16,8 +16,6 @@ export const calcularSaldo = (cuenta, movimientos) => {
   });
   return saldo;
 };
-
-const iconoTipo = (tipo) => ({ efectivo: "money", banco: "wallet", tarjeta_credito: "tag", ahorros: "target", otro: "wallet" }[tipo] || "wallet");
 
 export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimientos }) {
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -177,14 +175,14 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
               <label style={{ fontSize: 11, color: "var(--mid)" }}>Desde</label>
               <select value={transferForm.cuentaId} onChange={e => setTransferForm({ ...transferForm, cuentaId: e.target.value })}>
                 <option value="">Selecciona…</option>
-                {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                {cuentas.map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
               </select>
             </div>
             <div>
               <label style={{ fontSize: 11, color: "var(--mid)" }}>Hacia</label>
               <select value={transferForm.cuentaDestinoId} onChange={e => setTransferForm({ ...transferForm, cuentaDestinoId: e.target.value })}>
                 <option value="">Selecciona…</option>
-                {cuentas.filter(c => c.id !== transferForm.cuentaId).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                {cuentas.filter(c => c.id !== transferForm.cuentaId).map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
               </select>
             </div>
           </div>
@@ -293,8 +291,8 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
           return (
             <div key={c.id} className="animate" style={{ background: "var(--white)", borderRadius: 18, padding: "16px 18px", border: "1px solid var(--border)", boxShadow: "var(--shadow)", display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--primary-pale)", color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Icon name={iconoTipo(c.tipo)} size={20} />
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--primary-pale)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>
+                  {iconoCuenta(c)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: 0 }}>{c.nombre}</p>
