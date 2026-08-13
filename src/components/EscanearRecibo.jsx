@@ -62,7 +62,8 @@ async function llamarGroq(base64, mediaType = "image/png") {
     body: JSON.stringify({
       model: "qwen/qwen3.6-27b",
       temperature: 0.1,
-      max_tokens: 512,
+      max_tokens: 768,
+      reasoning_effort: "none",
       messages: [{
         role: "user",
         content: [
