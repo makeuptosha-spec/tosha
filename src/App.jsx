@@ -10,7 +10,6 @@ import Movimientos from "./components/Movimientos.jsx";
 import Cuentas from "./components/Cuentas.jsx";
 import Facturas from "./components/Facturas.jsx";
 import Presupuestos from "./components/Presupuestos.jsx";
-import OnboardingTour, { ONBOARDING_KEY } from "./components/OnboardingTour.jsx";
 import Usuarios from "./components/Usuarios.jsx";
 
 initTema();
@@ -20,7 +19,6 @@ export default function App() {
   const [usuario, setUsuario] = useState(undefined);
   const [vistaAuth, setVistaAuth] = useState("login");
   const [tab, setTab] = useState("inicio");
-  const [mostrarTour, setMostrarTour] = useState(false);
   const [mostrarUsuarios, setMostrarUsuarios] = useState(false);
   const [noAutorizado, setNoAutorizado] = useState(false);
   const [cuentas, setCuentas] = useState([]);
@@ -68,10 +66,6 @@ export default function App() {
     fetchData();
   }, [usuario]);
 
-  useEffect(() => {
-    if (usuario && !cargando && !localStorage.getItem(ONBOARDING_KEY)) setMostrarTour(true);
-  }, [usuario, cargando]);
-
   const tabs = [
     { id: "inicio", label: "Inicio", icon: "dashboard" },
     { id: "movimientos", label: "Movimientos", icon: "chart" },
@@ -115,7 +109,6 @@ export default function App() {
   return (
     <>
       <style>{globalStyles}</style>
-      {mostrarTour && <OnboardingTour onFinish={() => setMostrarTour(false)} />}
       {mostrarUsuarios && <Usuarios onClose={() => setMostrarUsuarios(false)} />}
       <div className="app-wrapper">
         <div style={{ padding: "0 16px" }}>
@@ -128,7 +121,6 @@ export default function App() {
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <button onClick={toggleTema} title={tema === "dark" ? "Modo claro" : "Modo oscuro"} style={{ background: "transparent", border: "none", color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, fontSize: 15 }}>{tema === "dark" ? "☀️" : "🌙"}</button>
               <button onClick={() => setMostrarUsuarios(true)} title="Usuarios autorizados" style={{ background: "transparent", border: "none", color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8 }}>👥</button>
-              <button onClick={() => setMostrarTour(true)} title="Ver tour de bienvenida" style={{ background: "transparent", border: "none", color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, fontSize: 15, fontWeight: 700 }}>?</button>
               <button onClick={() => signOut(auth)} style={{ background: "transparent", border: "none", color: "var(--danger)", display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 8 }}>
                 <Icon name="logout" size={14} /> Salir
               </button>
