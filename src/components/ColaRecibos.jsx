@@ -36,7 +36,7 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
         categoria: b.categoriaSugerida,
         cuentaId: b.cuentaId,
         descripcion: b.comercio || b.descripcion || "Gasto escaneado",
-        fecha: new Date(b.fecha || Date.now()).toISOString(),
+        fecha: b.fecha || new Date().toISOString().slice(0, 10),
         hogarId: HOGAR_ID, uid: auth.currentUser.uid,
         fechaCreacion: new Date().toISOString()
       };
@@ -74,7 +74,7 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
         <div key={b._id} style={{ background: "var(--bg)", borderRadius: 16, padding: 16, border: "1.5px solid var(--primary-soft)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
             <span style={{ fontSize: 11, background: "var(--primary-pale)", color: "var(--primary-deep)", padding: "3px 10px", borderRadius: 20, fontWeight: 700 }}>🧾 {b.comercio || "Recibo escaneado"}</span>
-            <button onClick={() => descartarBorrador(b._id)} style={{ background: "#FFEBEE", color: "var(--danger)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 600 }}>Descartar</button>
+            <button onClick={() => descartarBorrador(b._id)} style={{ background: "var(--danger-bg)", color: "var(--danger)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 600 }}>Descartar</button>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

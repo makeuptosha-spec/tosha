@@ -141,7 +141,7 @@ export default function EscanearRecibo({ onBorradorCreado, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div className="animate" style={{ background: "#fff", borderRadius: 24, padding: 30, width: "90%", maxWidth: 420, boxShadow: "0 8px 40px rgba(0,0,0,0.15)" }}>
+      <div className="animate" style={{ background: "var(--white)", borderRadius: 24, padding: 30, width: "90%", maxWidth: 420, boxShadow: "0 8px 40px rgba(0,0,0,0.15)" }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div>
@@ -187,7 +187,7 @@ export default function EscanearRecibo({ onBorradorCreado, onClose }) {
           <div style={{ textAlign: "center", padding: "20px 0" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
             <p style={{ fontWeight: 700, color: "var(--danger)", fontSize: 14, marginBottom: 8 }}>Error al procesar</p>
-            <p style={{ fontSize: 12, color: "var(--mid)", background: "#FFEBEE", padding: "10px", borderRadius: 10, marginBottom: 20 }}>{errorMsg}</p>
+            <p style={{ fontSize: 12, color: "var(--mid)", background: "var(--danger-bg)", padding: "10px", borderRadius: 10, marginBottom: 20 }}>{errorMsg}</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setEstado("idle"); setErrorMsg(""); }} style={{ flex: 1, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: "11px", fontWeight: 600, cursor: "pointer" }}>Intentar de nuevo</button>
               <button onClick={onClose} style={{ flex: 1, background: "var(--danger)", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontWeight: 600, cursor: "pointer" }}>Cerrar</button>

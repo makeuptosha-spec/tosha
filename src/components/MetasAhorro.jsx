@@ -93,7 +93,7 @@ export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {toast && (
-        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--dark)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
+        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--ink)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
           {toast.msg}
         </div>
       )}
@@ -132,7 +132,7 @@ export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }
 
       {moviendo && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
+          <div className="animate" style={{ background: "var(--white)", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 16 }}>
               {moviendo.accion === "aportar" ? "Aportar a" : "Retirar de"} "{moviendo.meta.nombre}"
             </h3>
@@ -160,8 +160,8 @@ export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }
 
       {metaAEliminar && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
-            <div style={{ background: "#FFEBEE", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
+          <div className="animate" style={{ background: "var(--white)", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ background: "var(--danger-bg)", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Eliminar meta?</h3>
             <p style={{ fontSize: 13, color: "var(--mid)", marginBottom: 24 }}>{metaAEliminar.nombre}</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -195,7 +195,7 @@ export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }
               <button onClick={() => abrirMovimiento(m, "aportar")} style={{ flex: 1, background: "linear-gradient(135deg, var(--success), #43A047)", color: "#fff", border: "none", borderRadius: 10, padding: "9px", fontSize: 12, fontWeight: 700 }}>+ Aportar</button>
               {m.montoActual > 0 && <button onClick={() => abrirMovimiento(m, "retirar")} style={{ flex: 1, background: "var(--bg)", color: "var(--mid)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px", fontSize: 12, fontWeight: 700 }}>− Retirar</button>}
               <button onClick={() => abrirEdicion(m)} style={{ flex: "0 0 auto", background: "var(--bg)", color: "var(--primary-deep)", border: "1px solid var(--primary-soft)", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>✏️</button>
-              <button onClick={() => setMetaAEliminar(m)} style={{ flex: "0 0 auto", background: "#FFEBEE", color: "var(--danger)", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>🗑️</button>
+              <button onClick={() => setMetaAEliminar(m)} style={{ flex: "0 0 auto", background: "var(--danger-bg)", color: "var(--danger)", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>🗑️</button>
             </div>
           </div>
         ))}

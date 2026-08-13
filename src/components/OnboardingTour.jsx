@@ -39,7 +39,7 @@ export default function OnboardingTour({ onFinish }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div className="animate" style={{ background: "#fff", borderRadius: 24, padding: "32px 28px", width: "100%", maxWidth: 400, textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}>
+      <div className="animate" style={{ background: "var(--white)", borderRadius: 24, padding: "32px 28px", width: "100%", maxWidth: 400, textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}>
         <div style={{ width: 72, height: 72, borderRadius: "50%", background: "var(--primary-pale)", color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 32 }}>
           {actual.icon.length <= 2 ? actual.icon : <Icon name={actual.icon} size={32} />}
         </div>

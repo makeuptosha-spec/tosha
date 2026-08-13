@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { auth } from "./firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
-import { LoaderInteractivo, Icon, globalStyles, fetchPropio } from "./utils.jsx";
+import { LoaderInteractivo, Icon, globalStyles, fetchPropio, initTema, useTema } from "./utils.jsx";
 import LoginScreen from "./components/LoginScreen.jsx";
 import SignupScreen from "./components/SignupScreen.jsx";
 import Inicio from "./components/Inicio.jsx";
@@ -13,7 +13,10 @@ import Presupuestos from "./components/Presupuestos.jsx";
 import OnboardingTour, { ONBOARDING_KEY } from "./components/OnboardingTour.jsx";
 import Usuarios from "./components/Usuarios.jsx";
 
+initTema();
+
 export default function App() {
+  const [tema, toggleTema] = useTema();
   const [usuario, setUsuario] = useState(undefined);
   const [vistaAuth, setVistaAuth] = useState("login");
   const [tab, setTab] = useState("inicio");
@@ -77,7 +80,7 @@ export default function App() {
     { id: "presupuestos", label: "Metas", icon: "target" },
   ];
 
-  if (usuario === undefined) return <div style={{ minHeight: '100vh', background: '#F6FAF8' }} />;
+  if (usuario === undefined) return <><style>{globalStyles}</style><div style={{ minHeight: '100vh', background: 'var(--bg)' }} /></>;
   if (usuario === null) {
     return (
       <>
@@ -101,7 +104,7 @@ export default function App() {
           <p style={{ fontSize: 13, color: "var(--mid)", maxWidth: 320, marginBottom: 24 }}>
             Tu cuenta (<strong>{usuario.email}</strong>) se creó bien, pero el administrador todavía no autorizó este correo pa ver los datos. Pedile que lo agregue.
           </p>
-          <button onClick={() => signOut(auth)} style={{ background: "var(--dark)", color: "#fff", border: "none", borderRadius: 12, padding: "12px 24px", fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={() => signOut(auth)} style={{ background: "var(--ink)", color: "#fff", border: "none", borderRadius: 12, padding: "12px 24px", fontWeight: 600, cursor: "pointer" }}>
             Cerrar sesión
           </button>
         </div>
@@ -123,6 +126,7 @@ export default function App() {
               <p style={{ fontSize: 10, color: "var(--mid)", letterSpacing: 1.5, textTransform: "uppercase", marginTop: 2 }}>Control personal</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <button onClick={toggleTema} title={tema === "dark" ? "Modo claro" : "Modo oscuro"} style={{ background: "transparent", border: "none", color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, fontSize: 15 }}>{tema === "dark" ? "☀️" : "🌙"}</button>
               <button onClick={() => setMostrarUsuarios(true)} title="Usuarios autorizados" style={{ background: "transparent", border: "none", color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8 }}>👥</button>
               <button onClick={() => setMostrarTour(true)} title="Ver tour de bienvenida" style={{ background: "transparent", border: "none", color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, fontSize: 15, fontWeight: 700 }}>?</button>
               <button onClick={() => signOut(auth)} style={{ background: "transparent", border: "none", color: "var(--danger)", display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 8 }}>

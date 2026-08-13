@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, TIPOS_CUENTA, HOGAR_ID } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID } from "../utils.jsx";
 
 export const calcularSaldo = (cuenta, movimientos) => {
   let saldo = Number(cuenta.saldoInicial) || 0;
@@ -29,7 +29,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   const [guardandoAjuste, setGuardandoAjuste] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "" };
+  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", cuotaMensual: "" };
   const [form, setForm] = useState(formBase);
 
   const transferBase = { cuentaId: "", cuentaDestinoId: "", monto: "", descripcion: "" };
@@ -44,9 +44,18 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   );
   const balanceTotal = cuentasConSaldo.reduce((s, c) => s + c.saldo, 0);
 
+  const esTarjeta = form.tipo === "tarjeta_credito";
+
   const guardar = async () => {
-    if (!form.nombre || form.saldoInicial === "") return showToast("⚠️ Completa nombre y saldo inicial", "warn");
-    const datos = { nombre: form.nombre, tipo: form.tipo, saldoInicial: Number(form.saldoInicial), activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid };
+    if (!form.nombre || form.saldoInicial === "") return showToast(esTarjeta ? "⚠️ Completa nombre y deuda actual" : "⚠️ Completa nombre y saldo inicial", "warn");
+    if (esTarjeta && form.cupoTotal === "") return showToast("⚠️ Completa el cupo total", "warn");
+    const datos = {
+      nombre: form.nombre, tipo: form.tipo,
+      saldoInicial: esTarjeta ? -Math.abs(Number(form.saldoInicial)) : Number(form.saldoInicial),
+      cupoTotal: esTarjeta ? Number(form.cupoTotal) : null,
+      cuotaMensual: esTarjeta ? Number(form.cuotaMensual || 0) : null,
+      activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
+    };
     try {
       if (editandoId) {
         await updateDoc(doc(db, "cuentas", editandoId), datos);
@@ -63,7 +72,12 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   };
 
   const abrirEdicion = (c) => {
-    setForm({ nombre: c.nombre, tipo: c.tipo, saldoInicial: String(c.saldoInicial) });
+    setForm({
+      nombre: c.nombre, tipo: c.tipo,
+      saldoInicial: c.tipo === "tarjeta_credito" ? String(Math.abs(c.saldoInicial)) : String(c.saldoInicial),
+      cupoTotal: c.cupoTotal != null ? String(c.cupoTotal) : "",
+      cuotaMensual: c.cuotaMensual != null ? String(c.cuotaMensual) : "",
+    });
     setEditandoId(c.id); setMostrarForm(true);
   };
 
@@ -99,6 +113,12 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
 
   const abrirAjuste = (c) => { setAjustando(c); setSaldoReal(String(Math.round(calcularSaldo(c, movimientos)))); };
 
+  const abrirPagoTarjeta = (c) => {
+    setTransferForm({ ...transferBase, cuentaDestinoId: c.id });
+    setMostrarTransferencia(true);
+    setMostrarForm(false);
+  };
+
   const confirmarAjuste = async () => {
     if (!ajustando || saldoReal === "") return;
     setGuardandoAjuste(true);
@@ -122,7 +142,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {toast && (
-        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--dark)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
+        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--ink)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
           {toast.msg}
         </div>
       )}
@@ -198,10 +218,22 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 11, color: "var(--mid)" }}>Saldo inicial</label>
+              <label style={{ fontSize: 11, color: "var(--mid)" }}>{esTarjeta ? "Deuda actual" : "Saldo inicial"}</label>
               <input type="text" value={form.saldoInicial ? fmtNum(form.saldoInicial) : ""} onChange={e => setForm({ ...form, saldoInicial: parseNum(e.target.value) })} />
             </div>
           </div>
+          {esTarjeta && (
+            <div className="form-grid">
+              <div>
+                <label style={{ fontSize: 11, color: "var(--mid)" }}>Cupo total</label>
+                <input type="text" value={form.cupoTotal ? fmtNum(form.cupoTotal) : ""} onChange={e => setForm({ ...form, cupoTotal: parseNum(e.target.value) })} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuota mensual</label>
+                <input type="text" value={form.cuotaMensual ? fmtNum(form.cuotaMensual) : ""} onChange={e => setForm({ ...form, cuotaMensual: parseNum(e.target.value) })} />
+              </div>
+            </div>
+          )}
           <button onClick={guardar} style={{ background: "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontWeight: 700, fontSize: 14 }}>
             {editandoId ? "Actualizar" : "Guardar cuenta"}
           </button>
@@ -211,7 +243,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       {/* MODAL AJUSTAR SALDO */}
       {ajustando && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
+          <div className="animate" style={{ background: "var(--white)", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 6 }}>Ajustar "{ajustando.nombre}"</h3>
             <p style={{ fontSize: 12, color: "var(--mid)", marginBottom: 16 }}>Saldo en la app: <strong>{fmt(calcularSaldo(ajustando, movimientos))}</strong> — poné el saldo real (ej: el que ves en el banco) y se crea un ajuste automático por la diferencia.</p>
             <label style={{ fontSize: 11, color: "var(--mid)" }}>Saldo real</label>
@@ -229,8 +261,8 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       {/* MODAL ELIMINAR */}
       {cuentaAEliminar && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
-            <div style={{ background: "#FFEBEE", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
+          <div className="animate" style={{ background: "var(--white)", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ background: "var(--danger-bg)", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Eliminar cuenta?</h3>
             <p style={{ fontSize: 13, color: "var(--mid)", marginBottom: 24 }}>Los movimientos históricos de <strong>{cuentaAEliminar.nombre}</strong> no se borran, pero quedarán sin cuenta asociada.</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -250,25 +282,45 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
             <p style={{ fontSize: 13, color: "var(--mid)", marginTop: 4 }}>Crea tu primera cuenta pa empezar a registrar movimientos</p>
           </div>
         )}
-        {cuentasConSaldo.map(c => (
-          <div key={c.id} className="animate" style={{ background: "var(--white)", borderRadius: 18, padding: "16px 18px", border: "1px solid var(--border)", boxShadow: "var(--shadow)", display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--primary-pale)", color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Icon name={iconoTipo(c.tipo)} size={20} />
+        {cuentasConSaldo.map(c => {
+          const esTC = c.tipo === "tarjeta_credito";
+          const deuda = esTC ? Math.max(0, -c.saldo) : 0;
+          const cupo = esTC ? Number(c.cupoTotal) || 0 : 0;
+          const disponible = esTC ? Math.max(0, cupo - deuda) : 0;
+          const pctUsado = esTC && cupo ? Math.min(100, (deuda / cupo) * 100) : 0;
+          return (
+            <div key={c.id} className="animate" style={{ background: "var(--white)", borderRadius: 18, padding: "16px 18px", border: "1px solid var(--border)", boxShadow: "var(--shadow)", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--primary-pale)", color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Icon name={iconoTipo(c.tipo)} size={20} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: 0 }}>{c.nombre}</p>
+                  <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>{TIPOS_CUENTA.find(t => t.id === c.tipo)?.label}</p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: esTC ? "var(--danger)" : (c.saldo < 0 ? "var(--danger)" : "var(--dark)"), margin: 0 }}>{fmt(esTC ? deuda : c.saldo)}</p>
+                  {esTC && <p style={{ fontSize: 10, color: "var(--mid)", margin: "2px 0 0" }}>debes</p>}
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {esTC && <button onClick={() => abrirPagoTarjeta(c)} title="Pagar tarjeta" style={{ background: "var(--primary-pale)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>💳</button>}
+                  <button onClick={() => abrirAjuste(c)} title="Ajustar saldo" style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚖️</button>
+                  <button onClick={() => abrirEdicion(c)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={14} /></button>
+                  <button onClick={() => setCuentaAEliminar(c)} style={{ background: "var(--danger-bg)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={14} /></button>
+                </div>
+              </div>
+              {esTC && (
+                <div>
+                  <ProgressBar pct={pctUsado} color={pctUsado > 80 ? "var(--danger)" : "var(--primary)"} bg="var(--border)" height={8} />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: "var(--mid)", flexWrap: "wrap", gap: 6 }}>
+                    <span>Disponible: <strong style={{ color: "var(--dark)" }}>{fmt(disponible)}</strong> de {fmt(cupo)}</span>
+                    {c.cuotaMensual > 0 && <span>Cuota: <strong style={{ color: "var(--dark)" }}>{fmt(c.cuotaMensual)}</strong></span>}
+                  </div>
+                </div>
+              )}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: 0 }}>{c.nombre}</p>
-              <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>{TIPOS_CUENTA.find(t => t.id === c.tipo)?.label}</p>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <p style={{ fontSize: 16, fontWeight: 800, color: c.saldo < 0 ? "var(--danger)" : "var(--dark)", margin: 0 }}>{fmt(c.saldo)}</p>
-            </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => abrirAjuste(c)} title="Ajustar saldo" style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚖️</button>
-              <button onClick={() => abrirEdicion(c)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={14} /></button>
-              <button onClick={() => setCuentaAEliminar(c)} style={{ background: "#FFEBEE", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={14} /></button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

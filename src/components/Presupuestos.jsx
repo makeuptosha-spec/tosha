@@ -89,7 +89,7 @@ export default function Presupuestos({ presupuestos, setPresupuestos, movimiento
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {toggleBar}
       {toast && (
-        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--dark)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
+        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--ink)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
           {toast.msg}
         </div>
       )}
@@ -122,8 +122,8 @@ export default function Presupuestos({ presupuestos, setPresupuestos, movimiento
 
       {presupuestoAEliminar && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
-            <div style={{ background: "#FFEBEE", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
+          <div className="animate" style={{ background: "var(--white)", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ background: "var(--danger-bg)", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Eliminar presupuesto?</h3>
             <p style={{ fontSize: 13, color: "var(--mid)", marginBottom: 24 }}>{presupuestoAEliminar.categoria}</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -148,7 +148,7 @@ export default function Presupuestos({ presupuestos, setPresupuestos, movimiento
               <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: 0 }}>{p.categoria}</p>
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={() => abrirEdicion(p)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 28, height: 28, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={12} /></button>
-                <button onClick={() => setPresupuestoAEliminar(p)} style={{ background: "#FFEBEE", border: "none", borderRadius: 8, width: 28, height: 28, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={12} /></button>
+                <button onClick={() => setPresupuestoAEliminar(p)} style={{ background: "var(--danger-bg)", border: "none", borderRadius: 8, width: 28, height: 28, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={12} /></button>
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>

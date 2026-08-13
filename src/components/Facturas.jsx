@@ -14,8 +14,8 @@ const estadoFactura = (factura, pagosFactura) => {
 };
 
 const ESTILO_ESTADO = {
-  pagada:   { bg: "#E8F5E9", color: "var(--success)", label: "✅ Pagada" },
-  vencida:  { bg: "#FFEBEE", color: "var(--danger)",  label: "🔴 Vencida" },
+  pagada:   { bg: "var(--success-bg)", color: "var(--success)", label: "✅ Pagada" },
+  vencida:  { bg: "var(--danger-bg)", color: "var(--danger)",  label: "🔴 Vencida" },
   pendiente:{ bg: "var(--accent-pale)", color: "var(--accent)", label: "⏳ Pendiente" },
 };
 
@@ -27,6 +27,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
   const [pagando, setPagando] = useState(null);
   const [montoPago, setMontoPago] = useState("");
   const [cuentaPago, setCuentaPago] = useState("");
+  const [yaPagado, setYaPagado] = useState(false);
   const [guardandoPago, setGuardandoPago] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -86,26 +87,36 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
     setPagando(f);
     setMontoPago(String(f.montoEstimado));
     setCuentaPago(f.cuentaId);
+    setYaPagado(false);
+  };
+
+  const cerrarPago = () => {
+    setPagando(null); setMontoPago(""); setCuentaPago(""); setYaPagado(false);
   };
 
   const confirmarPago = async () => {
-    if (!pagando || !montoPago || !cuentaPago) return;
+    if (!pagando || !montoPago || (!yaPagado && !cuentaPago)) return;
     setGuardandoPago(true);
     try {
       const fecha = new Date().toISOString();
-      const nuevoMovimiento = {
-        tipo: "gasto", monto: Number(montoPago), categoria: pagando.categoria, cuentaId: cuentaPago,
-        descripcion: pagando.nombre, fecha, facturaRecurrenteId: pagando.id, hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
-      };
-      const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
-      setMovimientos(m => [{ id: movRef.id, ...nuevoMovimiento }, ...m]);
+      let movimientoId = null;
 
-      const nuevoPago = { facturaRecurrenteId: pagando.id, mes: mesActual(), pagado: true, fechaPago: fecha, montoPagado: Number(montoPago), movimientoId: movRef.id, hogarId: HOGAR_ID, uid: auth.currentUser.uid };
+      if (!yaPagado) {
+        const nuevoMovimiento = {
+          tipo: "gasto", monto: Number(montoPago), categoria: pagando.categoria, cuentaId: cuentaPago,
+          descripcion: pagando.nombre, fecha, facturaRecurrenteId: pagando.id, hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
+        };
+        const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
+        setMovimientos(m => [{ id: movRef.id, ...nuevoMovimiento }, ...m]);
+        movimientoId = movRef.id;
+      }
+
+      const nuevoPago = { facturaRecurrenteId: pagando.id, mes: mesActual(), pagado: true, fechaPago: fecha, montoPagado: Number(montoPago), movimientoId, hogarId: HOGAR_ID, uid: auth.currentUser.uid };
       const pagoRef = await addDoc(collection(db, "pagosFactura"), nuevoPago);
       setPagosFactura(p => [{ id: pagoRef.id, ...nuevoPago }, ...p]);
 
       showToast(`✅ ${pagando.nombre} marcada como pagada`);
-      setPagando(null); setMontoPago(""); setCuentaPago("");
+      cerrarPago();
     } catch { showToast("❌ Error al registrar el pago", "danger"); }
     finally { setGuardandoPago(false); }
   };
@@ -130,7 +141,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {toggleBar}
       {toast && (
-        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--dark)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
+        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--ink)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
           {toast.msg}
         </div>
       )}
@@ -194,22 +205,33 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
       {/* MODAL PAGAR */}
       {pagando && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
+          <div className="animate" style={{ background: "var(--white)", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 16 }}>Marcar "{pagando.nombre}" como pagada</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label style={{ fontSize: 11, color: "var(--mid)" }}>Monto pagado</label>
                 <input type="text" value={montoPago ? fmtNum(montoPago) : ""} onChange={e => setMontoPago(parseNum(e.target.value))} />
               </div>
-              <div>
-                <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuenta desde donde pagas</label>
-                <select value={cuentaPago} onChange={e => setCuentaPago(e.target.value)}>
-                  {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </select>
+              <div onClick={() => setYaPagado(v => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "var(--bg)", padding: "12px 14px", borderRadius: 14, border: "1px solid var(--border)", cursor: "pointer" }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0 }}>Ya pagué esto antes</p>
+                  <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>No descuenta de ninguna cuenta, solo marca pagada</p>
+                </div>
+                <div style={{ flexShrink: 0, width: 44, height: 26, borderRadius: 100, padding: 3, background: yaPagado ? "linear-gradient(135deg, var(--primary-deep), var(--primary))" : "#A8BDB4", transition: "background 0.2s" }}>
+                  <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "var(--shadow)", transform: yaPagado ? "translateX(18px)" : "translateX(0)", transition: "transform 0.2s" }} />
+                </div>
               </div>
+              {!yaPagado && (
+                <div>
+                  <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuenta desde donde pagas</label>
+                  <select value={cuentaPago} onChange={e => setCuentaPago(e.target.value)}>
+                    {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={() => setPagando(null)} style={{ flex: 1, background: "var(--border)", color: "var(--dark)", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>Cancelar</button>
+              <button onClick={cerrarPago} style={{ flex: 1, background: "var(--border)", color: "var(--dark)", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>Cancelar</button>
               <button onClick={confirmarPago} disabled={guardandoPago} style={{ flex: 1, background: "var(--success)", color: "white", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>
                 {guardandoPago ? "Guardando…" : "✅ Confirmar pago"}
               </button>
@@ -221,8 +243,8 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
       {/* MODAL ELIMINAR */}
       {facturaAEliminar && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
-            <div style={{ background: "#FFEBEE", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
+          <div className="animate" style={{ background: "var(--white)", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ background: "var(--danger-bg)", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Eliminar factura recurrente?</h3>
             <p style={{ fontSize: 13, color: "var(--mid)", marginBottom: 24 }}>{facturaAEliminar.nombre}</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -263,7 +285,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
                   </button>
                 )}
                 <button onClick={() => abrirEdicion(f)} style={{ flex: f.estado === "pagada" ? 1 : "0 0 auto", background: "var(--bg)", color: "var(--primary-deep)", border: "1px solid var(--primary-soft)", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>✏️ Editar</button>
-                <button onClick={() => setFacturaAEliminar(f)} style={{ flex: "0 0 auto", background: "#FFEBEE", color: "var(--danger)", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>🗑️</button>
+                <button onClick={() => setFacturaAEliminar(f)} style={{ flex: "0 0 auto", background: "var(--danger-bg)", color: "var(--danger)", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>🗑️</button>
               </div>
             </div>
           );
