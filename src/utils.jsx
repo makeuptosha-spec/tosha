@@ -305,6 +305,8 @@ export const globalStyles = `
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .desktop-flex { display: flex; flex-direction: column; gap: 20px; }
+  .mov-toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+  .mov-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; width: 100%; }
 
   @media (min-width: 768px) {
     .app-wrapper { max-width: 1200px; padding-bottom: 30px; padding-left: 120px; padding-top: 20px; }
@@ -314,6 +316,8 @@ export const globalStyles = `
     .form-grid { grid-template-columns: repeat(4, 1fr); }
     .desktop-flex { flex-direction: row; align-items: flex-start; }
     .desktop-flex > div { flex: 1; }
+    .mov-toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
+    .mov-toolbar-actions { width: auto; }
   }
 
   #reporte-imprimible { display: none; }
