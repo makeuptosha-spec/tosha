@@ -100,11 +100,13 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
     if (cuentaId === cuentaDestinoId) return showToast("⚠️ Elige cuentas distintas", "warn");
     setEnviandoTransfer(true);
     try {
-      await addDoc(collection(db, "movimientos"), {
+      const nuevoMovimiento = {
         tipo: "transferencia", monto: Number(monto), cuentaId, cuentaDestinoId,
         categoria: "Transferencia", descripcion: transferForm.descripcion || "Transferencia entre cuentas",
         fecha: new Date().toISOString(), hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: new Date().toISOString()
-      });
+      };
+      const ref = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
+      setMovimientos(m => [{ id: ref.id, ...nuevoMovimiento }, ...m]);
       showToast("✅ Transferencia realizada");
       setTransferForm(transferBase); setMostrarTransferencia(false);
     } catch { showToast("❌ Error en la transferencia", "danger"); }
