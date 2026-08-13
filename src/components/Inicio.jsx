@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts";
-import { fmt, esHoy, esEsteMes, hoyObj, StatCard, ProgressBar, TIPOS_CUENTA, useTema, colorTema, parseFecha } from "../utils.jsx";
+import { fmt, esHoy, esEsteMes, hoyObj, StatCard, ProgressBar, useTema, colorTema, parseFecha, iconoCuenta } from "../utils.jsx";
 import { calcularSaldo } from "./Cuentas.jsx";
 
 const HORA = new Date().getHours();
@@ -73,11 +73,10 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
 
   const balanceTotal = useMemo(() => cuentas.reduce((s, c) => s + calcularSaldo(c, movimientos), 0), [cuentas, movimientos]);
 
-  const balancePorTipo = useMemo(() => {
-    const mapa = {};
-    cuentas.forEach(c => { mapa[c.tipo] = (mapa[c.tipo] || 0) + calcularSaldo(c, movimientos); });
-    return TIPOS_CUENTA.map(t => ({ ...t, monto: mapa[t.id] || 0 })).filter(t => t.monto !== 0 || cuentas.some(c => c.tipo === t.id));
-  }, [cuentas, movimientos]);
+  const cuentasConSaldo = useMemo(() =>
+    cuentas.filter(c => c.activa !== false).map(c => ({ ...c, saldo: calcularSaldo(c, movimientos) })),
+    [cuentas, movimientos]
+  );
 
   const movHoy = movimientosVisibles.filter(m => esHoy(m.fecha));
   const movMes = movimientosVisibles.filter(m => esEsteMes(m.fecha));
@@ -156,14 +155,16 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
         <div style={{ position: "absolute", top: -24, right: -24, width: 110, height: 110, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
         <p style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: 13, opacity: 0.88, marginBottom: 2 }}>{SALUDO}</p>
         <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 700, marginBottom: 2 }}>Balance total: {fmt(balanceTotal)}</h2>
-        <p style={{ fontSize: 12, opacity: 0.75, marginBottom: balancePorTipo.length > 0 ? 16 : 0 }}>{hoyObj.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}</p>
+        <p style={{ fontSize: 12, opacity: 0.75, marginBottom: cuentasConSaldo.length > 0 ? 16 : 0 }}>{hoyObj.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}</p>
 
-        {balancePorTipo.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", position: "relative" }}>
-            {balancePorTipo.map(t => (
-              <div key={t.id} style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)", borderRadius: 12, padding: "8px 12px", flex: "1 1 auto", minWidth: 90 }}>
-                <p style={{ fontSize: 10, opacity: 0.8, margin: 0, textTransform: "uppercase", letterSpacing: 0.5 }}>{t.label}</p>
-                <p style={{ fontSize: 14, fontWeight: 800, margin: "2px 0 0" }}>{fmt(t.monto)}</p>
+        {cuentasConSaldo.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, position: "relative" }}>
+            {cuentasConSaldo.map(c => (
+              <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)", borderRadius: 12, padding: "8px 12px" }}>
+                <span style={{ fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span>{iconoCuenta(c)}</span> {c.nombre}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 800, flexShrink: 0, marginLeft: 8 }}>{fmt(c.saldo)}</span>
               </div>
             ))}
           </div>

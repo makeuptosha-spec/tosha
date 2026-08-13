@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual, iconoCuenta } from "../utils.jsx";
 import Deudas from "./Deudas.jsx";
 
 const estadoFactura = (factura, pagosFactura) => {
@@ -192,7 +192,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
               <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuenta de pago</label>
               <select value={form.cuentaId} onChange={e => setForm({ ...form, cuentaId: e.target.value })}>
                 <option value="">Selecciona…</option>
-                {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                {cuentas.map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
               </select>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
                 <div>
                   <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuenta desde donde pagas</label>
                   <select value={cuentaPago} onChange={e => setCuentaPago(e.target.value)}>
-                    {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    {cuentas.map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
                   </select>
                 </div>
               )}

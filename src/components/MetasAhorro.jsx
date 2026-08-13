@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, fmtFecha, Icon, ProgressBar, HOGAR_ID } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, fmtFecha, Icon, ProgressBar, HOGAR_ID, iconoCuenta } from "../utils.jsx";
 
 export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }) {
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -144,7 +144,7 @@ export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }
               <div>
                 <label style={{ fontSize: 11, color: "var(--mid)" }}>{moviendo.accion === "aportar" ? "Cuenta desde donde sale" : "Cuenta donde entra"}</label>
                 <select value={cuentaMov} onChange={e => setCuentaMov(e.target.value)}>
-                  {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  {cuentas.map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
                 </select>
               </div>
             </div>

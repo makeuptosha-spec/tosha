@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { fmt, fmtNum, parseNum, CATEGORIAS_GASTO, CATEGORIAS_INGRESO } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, iconoCuenta } from "../utils.jsx";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
@@ -145,7 +145,7 @@ export default function DictarMovimiento({ cuentas, onGuardar, onClose }) {
             </div>
             <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuenta</label>
             <select value={cuentaId} onChange={e => setCuentaId(e.target.value)} style={{ marginBottom: 16 }}>
-              {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              {cuentas.map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
             </select>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setEstado("idle")} style={{ flex: 1, background: "var(--border)", color: "var(--dark)", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>Repetir</button>

@@ -55,7 +55,7 @@ export const CATEGORIAS_GASTO = [
   "Alimentación", "Transporte", "Vivienda", "Servicios", "Salud",
   "Entretenimiento", "Educación", "Ropa", "Suscripciones", "Deudas", "Préstamo", "Ahorro", "Mascotas", "Otros"
 ];
-export const CATEGORIAS_INGRESO = ["Salario", "Freelance", "Ventas", "Préstamo", "Ahorro", "Regalo", "Inversión", "Otros"];
+export const CATEGORIAS_INGRESO = ["Salario", "Freelance", "Ventas", "Préstamo", "Ahorro", "Regalo", "Inversión", "Devolución", "Otros"];
 
 export const TIPOS_CUENTA = [
   { id: "efectivo", label: "Efectivo" },
@@ -64,6 +64,34 @@ export const TIPOS_CUENTA = [
   { id: "ahorros", label: "Ahorros" },
   { id: "otro", label: "Otro" },
 ];
+
+// ── ÍCONO POR BANCO (emoji, no logos con copyright) ──
+// Coincide por nombre de cuenta contra bancos/billeteras comunes en Colombia;
+// si no reconoce el nombre, cae al ícono genérico según el tipo de cuenta.
+export const iconoCuenta = (cuenta) => {
+  const n = (cuenta?.nombre || "").toLowerCase();
+  if (n.includes("nequi")) return "💜";
+  if (n.includes("bancolombia")) return "🟡";
+  if (n.includes("daviplata") || n.includes("davivienda") || n.includes("davi")) return "🔴";
+  if (n.includes("bbva")) return "🔵";
+  if (n.includes("bogot")) return "🟠";
+  if (n.includes("caja social")) return "🟢";
+  if (n.includes("popular")) return "🟢";
+  if (n.includes("av villas") || n.includes("avvillas")) return "💚";
+  if (n.includes("rappipay") || n.includes("rappi")) return "🧡";
+  if (n.includes("lulo")) return "💚";
+  if (n.includes("movii")) return "💙";
+  if (n.includes("scotiabank") || n.includes("colpatria")) return "❤️";
+  if (n.includes("itau") || n.includes("itaú")) return "🧡";
+  if (n.includes("falabella")) return "🩷";
+  switch (cuenta?.tipo) {
+    case "efectivo": return "💵";
+    case "banco": return "🏦";
+    case "tarjeta_credito": return "💳";
+    case "ahorros": return "🐷";
+    default: return "👛";
+  }
+};
 
 // ── UTILIDADES DE FORMATO Y FECHAS ──
 export const fmt = (n) => {
