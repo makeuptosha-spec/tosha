@@ -1,5 +1,40 @@
+import { useState, useEffect } from "react";
 import { db } from "./firebase.js";
 import { collection, getDocs, query, where } from "firebase/firestore";
+
+// ── TEMA (claro/oscuro) ──
+const TEMA_KEY = "tosha-tema";
+const TEMA_EVENTO = "tosha-tema-cambio";
+
+export const colorTema = (tema) => tema === "dark"
+  ? { grid: "#1F3329", texto: "#8FA79C", label: "#EAF5EF" }
+  : { grid: "#DCEEE5", texto: "#5B7268", label: "#0F2A20" };
+
+export const getTema = () => {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+};
+
+export const aplicarTema = (tema) => {
+  document.documentElement.setAttribute("data-theme", tema);
+  localStorage.setItem(TEMA_KEY, tema);
+  window.dispatchEvent(new Event(TEMA_EVENTO));
+};
+
+export const initTema = () => {
+  const guardado = localStorage.getItem(TEMA_KEY);
+  document.documentElement.setAttribute("data-theme", guardado === "dark" ? "dark" : "light");
+};
+
+export const useTema = () => {
+  const [tema, setTema] = useState(getTema());
+  useEffect(() => {
+    const onChange = () => setTema(getTema());
+    window.addEventListener(TEMA_EVENTO, onChange);
+    return () => window.removeEventListener(TEMA_EVENTO, onChange);
+  }, []);
+  return [tema, () => aplicarTema(tema === "dark" ? "light" : "dark")];
+};
 
 // ── IDENTIDAD DEL HOGAR (campo legado, ya no se usa pa aislar datos) ──
 export const HOGAR_ID = "hogar-principal";
@@ -51,20 +86,32 @@ export const mesActual = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 
+// Fechas guardadas como "YYYY-MM-DD" (sin hora) las interpreta el motor JS como
+// medianoche UTC — en timezones negativos (Colombia UTC-5) eso cae el día
+// anterior al leerla en hora local, corriendo la fecha un día pa atrás.
+export const parseFecha = (fechaStr) => {
+  if (!fechaStr) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+    const [y, m, d] = fechaStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(fechaStr);
+};
+
 export const esHoy = (fechaISO) => {
   if (!fechaISO) return false;
-  const d = new Date(fechaISO);
+  const d = parseFecha(fechaISO);
   return d.getDate() === hoyObj.getDate() && d.getMonth() === hoyObj.getMonth() && d.getFullYear() === hoyObj.getFullYear();
 };
 export const esEsteMes = (fechaISO) => {
   if (!fechaISO) return false;
-  const d = new Date(fechaISO);
+  const d = parseFecha(fechaISO);
   return d.getMonth() === hoyObj.getMonth() && d.getFullYear() === hoyObj.getFullYear();
 };
 
 export const fmtFecha = (iso) => {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("es-CO", { day: '2-digit', month: 'short', year: 'numeric' });
+  return parseFecha(iso).toLocaleDateString("es-CO", { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 export const fmtMes = (mesStr) => {
@@ -81,7 +128,7 @@ export const LoaderInteractivo = () => (
 );
 
 export const Badge = ({ children, variant = "default" }) => {
-  const styles = { default: { background: "var(--primary-pale)", color: "var(--primary-deep)" }, success: { background: "#E8F5E9", color: "var(--success)" }, warn: { background: "#FFF3E0", color: "var(--warn)" }, danger: { background: "#FFEBEE", color: "var(--danger)" } };
+  const styles = { default: { background: "var(--primary-pale)", color: "var(--primary-deep)" }, success: { background: "var(--success-bg)", color: "var(--success)" }, warn: { background: "var(--warn-bg)", color: "var(--warn)" }, danger: { background: "var(--danger-bg)", color: "var(--danger)" } };
   return <span style={{ ...styles[variant], display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 100, fontSize: 11, fontWeight: 600 }}>{children}</span>;
 };
 
@@ -113,11 +160,14 @@ export const Icon = ({ name, size = 18, color }) => {
   return icons[name] || null;
 };
 
+const PALE_TOKEN = { "var(--success)": "var(--success-bg)", "var(--danger)": "var(--danger-bg)", "var(--warn)": "var(--warn-bg)", "var(--primary)": "var(--primary-pale)" };
+
 export const StatCard = ({ icon, label, value, sub, color = "var(--primary)" }) => (
-  <div className="animate" style={{ background: "var(--white)", borderRadius: 20, padding: "20px 22px", boxShadow: "var(--shadow)", border: `1.5px solid ${color}33`, borderLeft: `4px solid ${color}`, display: "flex", flexDirection: "column", gap: 6 }}>
+  <div className="animate" style={{ position: "relative", background: "var(--white)", borderRadius: 20, padding: "20px 22px 20px 26px", boxShadow: "var(--shadow)", border: "1.5px solid var(--border)", overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: color }} />
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
       <span style={{ fontSize: 12, fontWeight: 500, color: "var(--mid)", letterSpacing: 0.5 }}>{label}</span>
-      <span style={{ width: 34, height: 34, borderRadius: 10, background: color + "18", color, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={icon} size={16} /></span>
+      <span style={{ width: 34, height: 34, borderRadius: 10, background: PALE_TOKEN[color] || "var(--primary-pale)", color, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={icon} size={16} /></span>
     </div>
     <div style={{ fontFamily: "'Fraunces', serif", fontSize: 24, fontWeight: 700, color: "var(--dark)", lineHeight: 1.1 }}>{value}</div>
     {sub && <div style={{ fontSize: 11, color: "var(--mid)" }}>{sub}</div>}
@@ -146,16 +196,52 @@ export const globalStyles = `
     --bg:        #F6FAF8;
     --dark:      #0F2A20;
     --mid:       #5B7268;
-    --border:    #DCEEE5;
+    --border:    #C5E2D3;
     --success:   #16A34A;
+    --success-bg: #E8F5E9;
     --warn:      #D97706;
+    --warn-bg:   #FFF3E0;
+    --warn-border: #FFB74D;
     --danger:    #DC2626;
+    --danger-bg: #FFEBEE;
+    --danger-border: #FFCDD2;
     --white:     #FFFFFF;
+    --ink:       #0F2A20;
+    --nav-bg:    rgba(255,255,255,0.95);
+    --overlay:   rgba(0,0,0,0.4);
     --shadow:    0 4px 24px rgba(6,95,70,0.10);
     --shadow-lg: 0 8px 40px rgba(6,95,70,0.16);
   }
 
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--dark); overflow-x: hidden; }
+  :root[data-theme="dark"] {
+    --primary:      #34D399;
+    --primary-deep: #10B981;
+    --primary-soft: #6EE7B7;
+    --primary-pale: #113828;
+    --accent:    #2DD4BF;
+    --accent-pale: #113330;
+    --accent-soft: #5EEAD4;
+    --bg:        #0B1712;
+    --dark:      #EAF5EF;
+    --mid:       #8FA79C;
+    --border:    #1F3329;
+    --success:   #22C55E;
+    --success-bg: #113322;
+    --warn:      #F59E0B;
+    --warn-bg:   #3A2A0F;
+    --warn-border: #5C4620;
+    --danger:    #F87171;
+    --danger-bg: #3A1418;
+    --danger-border: #5C2129;
+    --white:     #142019;
+    --ink:       #24382F;
+    --nav-bg:    rgba(11,23,18,0.92);
+    --overlay:   rgba(0,0,0,0.6);
+    --shadow:    0 4px 24px rgba(0,0,0,0.35);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--dark); overflow-x: hidden; transition: background 0.2s, color 0.2s; }
 
   input, select, textarea {
     font-family: 'DM Sans', sans-serif; outline: none; border: 1.5px solid var(--border);
@@ -179,7 +265,7 @@ export const globalStyles = `
   .money-float { display: inline-block; animation: moneyFloat 2.4s ease-in-out infinite; }
 
   .app-wrapper { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 90px; transition: all 0.3s ease; }
-  .nav-menu { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: rgba(255,255,255,0.95); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; padding: 10px 0 20px; z-index: 1000; transition: all 0.3s ease; }
+  .nav-menu { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--nav-bg); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; padding: 10px 0 20px; z-index: 1000; transition: all 0.3s ease; }
   .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; border: none; background: transparent; padding: 4px 0; transition: color 0.2s; }
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

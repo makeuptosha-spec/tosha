@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, fmtFecha, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, fmtFecha, parseFecha, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID } from "../utils.jsx";
 import EscanearRecibo from "./EscanearRecibo.jsx";
 import ColaRecibos from "./ColaRecibos.jsx";
 import DictarMovimiento from "./DictarMovimiento.jsx";
@@ -36,7 +36,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
       const coincideTexto = !q || (m.descripcion || "").toLowerCase().includes(q) || (m.categoria || "").toLowerCase().includes(q);
       let coincideFecha = true;
       if (filtroTiempo !== "todo" && m.fecha) {
-        const d = new Date(m.fecha);
+        const d = parseFecha(m.fecha);
         if (filtroTiempo === "hoy") coincideFecha = d.toDateString() === hoy.toDateString();
         else if (filtroTiempo === "semana") coincideFecha = d >= hace7Dias;
         else if (filtroTiempo === "mes") coincideFecha = d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear();
@@ -44,7 +44,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
       const coincideTipo = filtroTipo === "todos" || m.tipo === filtroTipo;
       const coincideCategoria = filtroCategoria === "todas" || m.categoria === filtroCategoria;
       return coincideTexto && coincideFecha && coincideTipo && coincideCategoria;
-    }).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    }).sort((a, b) => parseFecha(b.fecha) - parseFecha(a.fecha));
   }, [movimientosVisibles, busqueda, filtroTiempo, filtroTipo, filtroCategoria]);
 
   const resumen = useMemo(() => {
@@ -59,7 +59,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
     if (!form.monto || !form.categoria || !form.cuentaId) return showToast("⚠️ Completa monto, categoría y cuenta", "warn");
     const datos = {
       tipo: form.tipo, monto: Number(form.monto), categoria: form.categoria, cuentaId: form.cuentaId,
-      descripcion: form.descripcion, fecha: new Date(form.fecha).toISOString(), hogarId: HOGAR_ID, uid: auth.currentUser.uid
+      descripcion: form.descripcion, fecha: form.fecha, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
     try {
       if (editandoId) {
@@ -124,7 +124,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {toast && (
-        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--dark)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
+        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--ink)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
           {toast.msg}
         </div>
       )}
@@ -140,8 +140,8 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
       {/* MODAL ELIMINAR */}
       {movAEliminar && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
-            <div style={{ background: "#FFEBEE", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
+          <div className="animate" style={{ background: "var(--white)", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ background: "var(--danger-bg)", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Eliminar movimiento?</h3>
             <p style={{ fontSize: 13, color: "var(--mid)", marginBottom: 24 }}>{movAEliminar.descripcion || movAEliminar.categoria} · {fmt(movAEliminar.monto)}</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -177,7 +177,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
 
         <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none", marginBottom: 10 }}>
           {[{ id: "hoy", label: "Hoy" }, { id: "semana", label: "7 Días" }, { id: "mes", label: "Este Mes" }, { id: "todo", label: "Todo" }].map(f => (
-            <button key={f.id} onClick={() => setFiltroTiempo(f.id)} style={{ background: filtroTiempo === f.id ? "var(--dark)" : "var(--bg)", color: filtroTiempo === f.id ? "white" : "var(--dark)", border: "1px solid transparent", padding: "6px 14px", borderRadius: 50, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+            <button key={f.id} onClick={() => setFiltroTiempo(f.id)} style={{ background: filtroTiempo === f.id ? "var(--ink)" : "var(--bg)", color: filtroTiempo === f.id ? "white" : "var(--dark)", border: "1px solid transparent", padding: "6px 14px", borderRadius: 50, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
               {f.label}
             </button>
           ))}
@@ -197,7 +197,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
       </div>
 
       {cuentas.length === 0 && (
-        <div style={{ background: "#FFF3E0", border: "1.5px solid #FFB74D", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: "var(--warn-bg)", border: "1.5px solid var(--warn-border)", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 20 }}>⚠️</span>
           <p style={{ fontSize: 13, color: "var(--warn)", margin: 0 }}>Todavía no tenés ninguna cuenta creada. Andá a la pestaña <strong>Cuentas</strong> y creá al menos una (por ejemplo "Efectivo") antes de registrar movimientos.</p>
         </div>
@@ -253,7 +253,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
       {mostrarCola && (
         <div className="animate" style={{ background: "var(--white)", borderRadius: 20, padding: 20, border: "1.5px solid var(--warn)", boxShadow: "var(--shadow)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <span style={{ fontSize: 12, background: "#FFF3E0", color: "var(--warn)", padding: "4px 12px", borderRadius: 20, fontWeight: 700 }}>🧾 Recibos por confirmar</span>
+            <span style={{ fontSize: 12, background: "var(--warn-bg)", color: "var(--warn)", padding: "4px 12px", borderRadius: 20, fontWeight: 700 }}>🧾 Recibos por confirmar</span>
             <button onClick={() => setMostrarCola(false)} style={{ background: "transparent", border: "none", color: "var(--mid)", fontSize: 18 }}>×</button>
           </div>
           <ColaRecibos cuentas={cuentas} setMovimientos={setMovimientos} onCerrar={() => setMostrarCola(false)} />
@@ -285,9 +285,11 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
         {filtrados.map(m => {
           const esAjuste = m.tipo === "ajuste";
           const esIngreso = m.tipo === "ingreso" || (esAjuste && Number(m.monto) >= 0);
+          const colorAcento = esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)";
           return (
-          <div key={m.id} className="animate" style={{ background: "var(--white)", borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: esAjuste ? "var(--bg)" : esIngreso ? "#E8F5E9" : "#FFEBEE", color: esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <div key={m.id} className="animate" style={{ position: "relative", background: "var(--white)", borderRadius: 14, padding: "14px 16px 14px 18px", border: "1px solid var(--border)", overflow: "hidden", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: colorAcento }} />
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: esAjuste ? "var(--bg)" : esIngreso ? "var(--success-bg)" : "var(--danger-bg)", color: esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Icon name={esAjuste ? "edit" : esIngreso ? "trending" : "trendingDown"} size={16} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -299,7 +301,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
             </p>
             <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
               {!esAjuste && <button onClick={() => abrirEdicion(m)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={13} /></button>}
-              <button onClick={() => setMovAEliminar(m)} style={{ background: "#FFEBEE", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={13} /></button>
+              <button onClick={() => setMovAEliminar(m)} style={{ background: "var(--danger-bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={13} /></button>
             </div>
           </div>
         );})}

@@ -102,13 +102,13 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {toast && (
-        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--dark)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
+        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--ink)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
           {toast.msg}
         </div>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div style={{ background: "#FFEBEE", borderRadius: 18, padding: 16, border: "1px solid #FFCDD2" }}>
+        <div style={{ background: "var(--danger-bg)", borderRadius: 18, padding: 16, border: "1px solid var(--danger-border)" }}>
           <p style={{ fontSize: 11, color: "var(--danger)", fontWeight: 600 }}>Yo debo</p>
           <p style={{ fontSize: 20, fontWeight: 800, color: "var(--danger)", marginTop: 4 }}>{fmt(totalDebo)}</p>
         </div>
@@ -164,7 +164,7 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
 
       {abonando && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
+          <div className="animate" style={{ background: "var(--white)", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 6 }}>Abonar a "{abonando.nombre}"</h3>
             <p style={{ fontSize: 12, color: "var(--mid)", marginBottom: 16 }}>Saldo restante: {fmt(abonando.saldoRestante)}</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -191,8 +191,8 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
 
       {deudaAEliminar && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="animate" style={{ background: "white", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
-            <div style={{ background: "#FFEBEE", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
+          <div className="animate" style={{ background: "var(--white)", padding: 28, borderRadius: 24, width: "90%", maxWidth: 340, textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ background: "var(--danger-bg)", width: 60, height: 60, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--danger)" }}><Icon name="trash" size={28} /></div>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 8 }}>¿Eliminar registro?</h3>
             <p style={{ fontSize: 13, color: "var(--mid)", marginBottom: 24 }}>{deudaAEliminar.nombre}</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -217,7 +217,7 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: 0 }}>{d.nombre}</p>
-                  <span style={{ fontSize: 10, background: d.tipo === "debo" ? "#FFEBEE" : "var(--primary-pale)", color: d.tipo === "debo" ? "var(--danger)" : "var(--primary-deep)", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
+                  <span style={{ fontSize: 10, background: d.tipo === "debo" ? "var(--danger-bg)" : "var(--primary-pale)", color: d.tipo === "debo" ? "var(--danger)" : "var(--primary-deep)", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
                     {d.tipo === "debo" ? "Yo debo" : "Me deben"}
                   </span>
                 </div>
@@ -239,7 +239,7 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
                 </button>
               )}
               <button onClick={() => abrirEdicion(d)} style={{ flex: d.saldoRestante > 0 ? "0 0 auto" : 1, background: "var(--bg)", color: "var(--primary-deep)", border: "1px solid var(--primary-soft)", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>✏️</button>
-              <button onClick={() => setDeudaAEliminar(d)} style={{ flex: "0 0 auto", background: "#FFEBEE", color: "var(--danger)", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>🗑️</button>
+              <button onClick={() => setDeudaAEliminar(d)} style={{ flex: "0 0 auto", background: "var(--danger-bg)", color: "var(--danger)", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>🗑️</button>
             </div>
           </div>
         ))}

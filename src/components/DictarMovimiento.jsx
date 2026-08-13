@@ -101,7 +101,7 @@ export default function DictarMovimiento({ cuentas, onGuardar, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div className="animate" style={{ background: "#fff", borderRadius: 24, padding: 30, width: "90%", maxWidth: 420, boxShadow: "0 8px 40px rgba(0,0,0,0.15)" }}>
+      <div className="animate" style={{ background: "var(--white)", borderRadius: 24, padding: 30, width: "90%", maxWidth: 420, boxShadow: "0 8px 40px rgba(0,0,0,0.15)" }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 20, color: "var(--primary-deep)", margin: 0 }}>Dictar movimiento</h3>
@@ -157,7 +157,7 @@ export default function DictarMovimiento({ cuentas, onGuardar, onClose }) {
         {estado === "error" && (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
-            <p style={{ fontSize: 12, color: "var(--mid)", background: "#FFEBEE", padding: "10px", borderRadius: 10, marginBottom: 20 }}>{errorMsg}</p>
+            <p style={{ fontSize: 12, color: "var(--mid)", background: "var(--danger-bg)", padding: "10px", borderRadius: 10, marginBottom: 20 }}>{errorMsg}</p>
             <button onClick={() => setEstado("idle")} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: "11px 24px", fontWeight: 600, cursor: "pointer" }}>Intentar de nuevo</button>
           </div>
         )}
