@@ -29,7 +29,7 @@ async function interpretarConGroq(texto) {
     method: "POST",
     headers: { "content-type": "application/json", "authorization": `Bearer ${GROQ_KEY}` },
     body: JSON.stringify({
-      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.1,
       max_tokens: 256,
       messages: [{ role: "user", content: PROMPT(texto) }]

@@ -60,7 +60,7 @@ async function llamarGroq(base64, mediaType = "image/png") {
       "authorization": `Bearer ${GROQ_KEY}`
     },
     body: JSON.stringify({
-      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      model: "qwen/qwen3.6-27b",
       temperature: 0.1,
       max_tokens: 512,
       messages: [{
