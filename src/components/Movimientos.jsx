@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, fmtFecha, parseFecha, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, fmtFecha, parseFecha, hoyLocal, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID } from "../utils.jsx";
 import EscanearRecibo from "./EscanearRecibo.jsx";
 import ColaRecibos from "./ColaRecibos.jsx";
 import DictarMovimiento from "./DictarMovimiento.jsx";
@@ -20,7 +20,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const [mostrarDictar, setMostrarDictar] = useState(false);
 
   const cuentaPorDefecto = () => cuentas.find(c => c.tipo === "efectivo")?.id || cuentas[0]?.id || "";
-  const formBase = { tipo: "gasto", monto: "", categoria: "", cuentaId: cuentaPorDefecto(), descripcion: "", fecha: new Date().toISOString().slice(0, 10) };
+  const formBase = { tipo: "gasto", monto: "", categoria: "", cuentaId: cuentaPorDefecto(), descripcion: "", fecha: hoyLocal() };
   const [form, setForm] = useState(formBase);
 
   const showToast = (msg, tipo = "ok") => { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); };
@@ -77,7 +77,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   };
 
   const abrirEdicion = (m) => {
-    setForm({ tipo: m.tipo, monto: String(m.monto), categoria: m.categoria, cuentaId: m.cuentaId || "", descripcion: m.descripcion || "", fecha: (m.fecha || new Date().toISOString()).slice(0, 10) });
+    setForm({ tipo: m.tipo, monto: String(m.monto), categoria: m.categoria, cuentaId: m.cuentaId || "", descripcion: m.descripcion || "", fecha: (m.fecha || hoyLocal()).slice(0, 10) });
     setEditandoId(m.id); setMostrarForm(true); window.scrollTo(0, 0);
   };
 
@@ -116,7 +116,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `movimientos_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `movimientos_${hoyLocal()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
 import { collection, getDocs, query, where, updateDoc, deleteDoc, doc, addDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, CATEGORIAS_GASTO, HOGAR_ID } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, hoyLocal, CATEGORIAS_GASTO, HOGAR_ID } from "../utils.jsx";
 
 export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
   const [borradores, setBorradores] = useState([]);
@@ -36,7 +36,7 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
         categoria: b.categoriaSugerida,
         cuentaId: b.cuentaId,
         descripcion: b.comercio || b.descripcion || "Gasto escaneado",
-        fecha: b.fecha || new Date().toISOString().slice(0, 10),
+        fecha: b.fecha || hoyLocal(),
         hogarId: HOGAR_ID, uid: auth.currentUser.uid,
         fechaCreacion: new Date().toISOString()
       };
