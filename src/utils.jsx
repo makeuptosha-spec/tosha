@@ -86,6 +86,13 @@ export const mesActual = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 
+// "YYYY-MM-DD" de HOY en hora local — new Date().toISOString().slice(0,10)
+// da la fecha en UTC, que en Colombia (UTC-5) ya cae en "mañana" de noche.
+export const hoyLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 // Fechas guardadas como "YYYY-MM-DD" (sin hora) las interpreta el motor JS como
 // medianoche UTC — en timezones negativos (Colombia UTC-5) eso cae el día
 // anterior al leerla en hora local, corriendo la fecha un día pa atrás.

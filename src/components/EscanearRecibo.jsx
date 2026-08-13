@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { CATEGORIAS_GASTO, HOGAR_ID } from "../utils.jsx";
+import { CATEGORIAS_GASTO, HOGAR_ID, hoyLocal } from "../utils.jsx";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
@@ -118,7 +118,7 @@ export default function EscanearRecibo({ onBorradorCreado, onClose }) {
         ...datos,
         tipo: "gasto",
         estado: "pendiente",
-        fecha: datos.fecha || new Date().toISOString().slice(0, 10),
+        fecha: datos.fecha || hoyLocal(),
         categoriaSugerida: CATEGORIAS_GASTO.includes(datos.categoriaSugerida) ? datos.categoriaSugerida : "Otros",
         hogarId: HOGAR_ID, uid: auth.currentUser.uid,
         fechaCreacion: new Date().toISOString()
