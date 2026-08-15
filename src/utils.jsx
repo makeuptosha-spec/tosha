@@ -304,6 +304,7 @@ export const globalStyles = `
   .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; border: none; background: transparent; padding: 4px 0; transition: color 0.2s; }
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-grid > div { min-width: 0; }
   .desktop-flex { display: flex; flex-direction: column; gap: 20px; }
 
   @media (min-width: 768px) {
