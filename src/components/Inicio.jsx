@@ -77,7 +77,10 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
     [cuentas, movimientos]
   );
 
-  const balanceTotal = useMemo(() => cuentasConSaldo.reduce((s, c) => s + c.saldo, 0), [cuentasConSaldo]);
+  const balanceTotal = useMemo(() =>
+    cuentasConSaldo.filter(c => c.tipo !== "tarjeta_credito").reduce((s, c) => s + c.saldo, 0),
+    [cuentasConSaldo]
+  );
 
   const movHoy = movimientosVisibles.filter(m => esHoy(m.fecha));
   const movMes = movimientosVisibles.filter(m => esEsteMes(m.fecha));
