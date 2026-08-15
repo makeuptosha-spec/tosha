@@ -179,12 +179,12 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
 
       {/* BARRA SUPERIOR */}
       <div style={{ background: "var(--white)", borderRadius: 20, padding: 20, border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 14 }}>
-          <div style={{ position: "relative", flex: "1 1 200px", minWidth: 0 }}>
+        <div className="mov-toolbar" style={{ marginBottom: 14 }}>
+          <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
             <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--mid)" }}><Icon name="search" size={16} /></span>
             <input placeholder="Buscar por descripción o categoría..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ paddingLeft: 40, width: "100%" }} />
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div className="mov-toolbar-actions">
             <button onClick={exportarCSV} title="Exportar a CSV" style={{ background: "var(--bg)", color: "var(--mid)", border: "1.5px solid var(--border)", borderRadius: 50, padding: "8px 12px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
               ⬇️ CSV
             </button>
