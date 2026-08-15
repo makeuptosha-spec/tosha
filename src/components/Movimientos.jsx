@@ -53,6 +53,30 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
     return { ingresos, gastos, neto: ingresos - gastos };
   }, [filtrados]);
 
+  const gruposPorDia = useMemo(() => {
+    const mapa = new Map();
+    filtrados.forEach(m => {
+      const key = (m.fecha || "").slice(0, 10);
+      if (!mapa.has(key)) mapa.set(key, []);
+      mapa.get(key).push(m);
+    });
+    return [...mapa.entries()].map(([fecha, movs]) => {
+      const ingresos = movs.filter(m => m.tipo === "ingreso").reduce((s, m) => s + Number(m.monto), 0);
+      const gastos = movs.filter(m => m.tipo === "gasto").reduce((s, m) => s + Number(m.monto), 0);
+      return { fecha, movs, ingresos, gastos, neto: ingresos - gastos };
+    });
+  }, [filtrados]);
+
+  const labelDia = (fechaStr) => {
+    if (!fechaStr) return "Sin fecha";
+    const d = parseFecha(fechaStr);
+    const hoy = new Date();
+    const ayer = new Date(); ayer.setDate(hoy.getDate() - 1);
+    if (d.toDateString() === hoy.toDateString()) return "Hoy";
+    if (d.toDateString() === ayer.toDateString()) return "Ayer";
+    return d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  };
+
   const categoriasForm = form.tipo === "ingreso" ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO;
 
   const guardar = async () => {
@@ -281,39 +305,49 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
         </div>
       </div>
 
-      {/* LISTA */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* LISTA AGRUPADA POR DÍA */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {filtrados.length === 0 && <p style={{ fontSize: 13, color: "var(--mid)", padding: "10px", textAlign: "center" }}>No hay movimientos con estos filtros.</p>}
-        {filtrados.map(m => {
-          const esAjuste = m.tipo === "ajuste";
-          const esTransferencia = m.tipo === "transferencia";
-          const esIngreso = m.tipo === "ingreso" || (esAjuste && Number(m.monto) >= 0);
-          const colorAcento = esTransferencia ? "var(--accent)" : esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)";
-          return (
-          <div key={m.id} className="animate" style={{ position: "relative", background: "var(--white)", borderRadius: 14, padding: "14px 16px 14px 18px", border: "1px solid var(--border)", overflow: "hidden", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: colorAcento }} />
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: esTransferencia ? "var(--accent-pale)" : esAjuste ? "var(--bg)" : esIngreso ? "var(--success-bg)" : "var(--danger-bg)", color: esTransferencia ? "var(--accent)" : esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {esTransferencia ? <Icon name="transfer" size={16} /> : <Icon name={esAjuste ? "edit" : esIngreso ? "trending" : "trendingDown"} size={16} />}
+        {gruposPorDia.map(grupo => (
+          <div key={grupo.fecha} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--mid)", textTransform: "capitalize" }}>{labelDia(grupo.fecha)}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: grupo.neto >= 0 ? "var(--success)" : "var(--danger)" }}>
+                {grupo.neto >= 0 ? "+" : "−"}{fmt(Math.abs(grupo.neto))}
+              </span>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {esTransferencia ? "🔁 Transferencia" : esAjuste ? "⚖️ Ajuste de saldo" : (m.descripcion || m.categoria)}
-              </p>
-              <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>
-                {esTransferencia
-                  ? <>{cuentaConIcono(m.cuentaId)} → {cuentaConIcono(m.cuentaDestinoId)} · {fmtFecha(m.fecha)}</>
-                  : <>{m.categoria} · {cuentaConIcono(m.cuentaId)} · {fmtFecha(m.fecha)}</>}
-              </p>
-            </div>
-            <p style={{ fontSize: 15, fontWeight: 800, color: esTransferencia ? "var(--accent)" : esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", margin: 0, flexShrink: 0 }}>
-              {esTransferencia ? "" : esIngreso ? "+" : "−"}{fmt(Math.abs(m.monto))}
-            </p>
-            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-              {!esAjuste && !esTransferencia && <button onClick={() => abrirEdicion(m)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={13} /></button>}
-              <button onClick={() => setMovAEliminar(m)} style={{ background: "var(--danger-bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={13} /></button>
-            </div>
+            {grupo.movs.map(m => {
+              const esAjuste = m.tipo === "ajuste";
+              const esTransferencia = m.tipo === "transferencia";
+              const esIngreso = m.tipo === "ingreso" || (esAjuste && Number(m.monto) >= 0);
+              const colorAcento = esTransferencia ? "var(--accent)" : esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)";
+              return (
+              <div key={m.id} className="animate" style={{ position: "relative", background: "var(--white)", borderRadius: 14, padding: "14px 16px 14px 18px", border: "1px solid var(--border)", overflow: "hidden", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: colorAcento }} />
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: esTransferencia ? "var(--accent-pale)" : esAjuste ? "var(--bg)" : esIngreso ? "var(--success-bg)" : "var(--danger-bg)", color: esTransferencia ? "var(--accent)" : esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {esTransferencia ? <Icon name="transfer" size={16} /> : <Icon name={esAjuste ? "edit" : esIngreso ? "trending" : "trendingDown"} size={16} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {esTransferencia ? "🔁 Transferencia" : esAjuste ? "⚖️ Ajuste de saldo" : (m.descripcion || m.categoria)}
+                  </p>
+                  <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>
+                    {esTransferencia
+                      ? <>{cuentaConIcono(m.cuentaId)} → {cuentaConIcono(m.cuentaDestinoId)} · {fmtFecha(m.fecha)}</>
+                      : <>{m.categoria} · {cuentaConIcono(m.cuentaId)} · {fmtFecha(m.fecha)}</>}
+                  </p>
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 800, color: esTransferencia ? "var(--accent)" : esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", margin: 0, flexShrink: 0 }}>
+                  {esTransferencia ? "" : esIngreso ? "+" : "−"}{fmt(Math.abs(m.monto))}
+                </p>
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  {!esAjuste && !esTransferencia && <button onClick={() => abrirEdicion(m)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={13} /></button>}
+                  <button onClick={() => setMovAEliminar(m)} style={{ background: "var(--danger-bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={13} /></button>
+                </div>
+              </div>
+            );})}
           </div>
-        );})}
+        ))}
       </div>
     </div>
   );
