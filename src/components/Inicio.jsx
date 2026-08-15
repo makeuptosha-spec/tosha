@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { fmt, esHoy, esEsteMes, hoyObj, StatCard, ProgressBar, useTema, colorTema, parseFecha, iconoCuenta } from "../utils.jsx";
 import { calcularSaldo } from "./Cuentas.jsx";
 import { estadoFactura } from "./Facturas.jsx";
@@ -23,18 +23,21 @@ const HeartDot = ({ cx, cy, color, index }) => {
   );
 };
 
-const TooltipGrafica = ({ active, payload, label, color }) => {
+const COLOR_INGRESO = "#DC2626";
+const COLOR_GASTO = "#16A34A";
+
+const TooltipGrafica = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: "var(--ink)", color: "#fff", padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
-      {label && <div style={{ opacity: 0.75, fontWeight: 500, marginBottom: 2 }}>{label}</div>}
-      <div style={{ color }}>{fmt(payload[0].value)}</div>
+      {label && <div style={{ opacity: 0.75, fontWeight: 500, marginBottom: 4 }}>{label}</div>}
+      {payload.map(p => <div key={p.dataKey} style={{ color: p.color }}>{p.name}: {fmt(p.value)}</div>)}
     </div>
   );
 };
 
 // ── GRÁFICA ──
-const CustomLineChart = ({ data, color = "#10B981" }) => {
+const CustomLineChart = ({ data }) => {
   const [tema] = useTema();
   const c = colorTema(tema);
   if (!data || data.length === 0) return (
@@ -42,24 +45,26 @@ const CustomLineChart = ({ data, color = "#10B981" }) => {
       No hay datos en este periodo
     </div>
   );
-  const mostrarEtiquetas = data.length <= 10;
   return (
     <div style={{ width: "100%", height: 210, marginTop: 16 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: mostrarEtiquetas ? 22 : 10, right: 10, left: 0, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
-            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            <linearGradient id="ingresoGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={COLOR_INGRESO} stopOpacity="0.25" />
+              <stop offset="100%" stopColor={COLOR_INGRESO} stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="gastoGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={COLOR_GASTO} stopOpacity="0.25" />
+              <stop offset="100%" stopColor={COLOR_GASTO} stopOpacity="0" />
             </linearGradient>
           </defs>
           <CartesianGrid vertical={false} stroke={c.grid} />
           <XAxis dataKey="label" tick={{ fontSize: 11, fill: c.texto }} axisLine={{ stroke: c.grid }} tickLine={false} />
           <YAxis domain={[0, "dataMax"]} allowDecimals={false} tickCount={5} tick={{ fontSize: 11, fill: c.texto }} axisLine={false} tickLine={false} tickFormatter={fmtCorto} width={46} />
-          <Tooltip content={<TooltipGrafica color={color} />} cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: "4 4" }} />
-          <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2.5} fill="url(#lineGrad)" dot={<HeartDot color={color} />} activeDot={{ r: 6 }}>
-            {mostrarEtiquetas && <LabelList dataKey="value" position="top" formatter={fmtCorto} style={{ fontSize: 11, fontWeight: 700, fill: c.label }} />}
-          </Area>
+          <Tooltip content={<TooltipGrafica />} cursor={{ stroke: c.texto, strokeWidth: 1, strokeDasharray: "4 4" }} />
+          <Area type="monotone" dataKey="ingreso" name="Ingresos" stroke={COLOR_INGRESO} strokeWidth={2.5} fill="url(#ingresoGrad)" dot={<HeartDot color={COLOR_INGRESO} />} activeDot={{ r: 6 }} />
+          <Area type="monotone" dataKey="gasto" name="Gastos" stroke={COLOR_GASTO} strokeWidth={2.5} fill="url(#gastoGrad)" dot={<HeartDot color={COLOR_GASTO} />} activeDot={{ r: 6 }} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -68,7 +73,6 @@ const CustomLineChart = ({ data, color = "#10B981" }) => {
 
 export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pagosFactura, presupuestos, deudas = [], metas = [] }) {
   const [filtroGrafica, setFiltroGrafica] = useState("mes");
-  const [metricaGrafica, setMetricaGrafica] = useState("gasto");
 
   const movimientosVisibles = useMemo(() => movimientos.filter(m => m.tipo !== "transferencia"), [movimientos]);
 
@@ -143,7 +147,7 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
     const hace7Dias = new Date(); hace7Dias.setDate(hoy.getDate() - 7);
     const agrupado = {};
     const vFiltro = movimientosVisibles.filter(m => {
-      if (m.tipo !== metricaGrafica || !m.fecha) return false;
+      if ((m.tipo !== "ingreso" && m.tipo !== "gasto") || !m.fecha) return false;
       const d = parseFecha(m.fecha);
       if (filtroGrafica === "semana") return d >= hace7Dias;
       if (filtroGrafica === "mes") return d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear();
@@ -155,11 +159,11 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
       if (filtroGrafica === "semana") key = d.toLocaleDateString("es-CO", { weekday: "short" });
       else if (filtroGrafica === "mes") key = `${d.getDate()}`;
       else key = d.toLocaleDateString("es-CO", { month: "short" });
-      if (!agrupado[key]) agrupado[key] = { label: key, value: 0, dateObj: d };
-      agrupado[key].value += Number(m.monto);
+      if (!agrupado[key]) agrupado[key] = { label: key, ingreso: 0, gasto: 0, dateObj: d };
+      agrupado[key][m.tipo] += Number(m.monto);
     });
     return Object.values(agrupado).sort((a, b) => a.dateObj - b.dateObj);
-  }, [movimientosVisibles, filtroGrafica, metricaGrafica]);
+  }, [movimientosVisibles, filtroGrafica]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -292,9 +296,9 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
       {/* GRÁFICA */}
       <div style={{ background: "var(--white)", borderRadius: 20, padding: "20px", border: "1.5px solid var(--primary-soft)", boxShadow: "var(--shadow)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => setMetricaGrafica("gasto")} style={{ background: metricaGrafica === "gasto" ? "var(--danger)" : "var(--bg)", color: metricaGrafica === "gasto" ? "#fff" : "var(--mid)", border: "none", padding: "6px 14px", borderRadius: 50, fontSize: 12, fontWeight: 700 }}>Gastos</button>
-            <button onClick={() => setMetricaGrafica("ingreso")} style={{ background: metricaGrafica === "ingreso" ? "var(--success)" : "var(--bg)", color: metricaGrafica === "ingreso" ? "#fff" : "var(--mid)", border: "none", padding: "6px 14px", borderRadius: 50, fontSize: 12, fontWeight: 700 }}>Ingresos</button>
+          <div style={{ display: "flex", gap: 12 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: COLOR_INGRESO }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: COLOR_INGRESO }} /> Ingresos</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: COLOR_GASTO }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: COLOR_GASTO }} /> Gastos</span>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             {[{ id: "semana", label: "7 Días" }, { id: "mes", label: "Mes" }, { id: "todo", label: "Historial" }].map(f => (
@@ -302,7 +306,7 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
             ))}
           </div>
         </div>
-        <CustomLineChart data={datosGrafica} color={metricaGrafica === "gasto" ? "#DC2626" : "#16A34A"} />
+        <CustomLineChart data={datosGrafica} />
       </div>
 
     </div>
