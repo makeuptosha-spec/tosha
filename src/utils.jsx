@@ -55,7 +55,7 @@ export const CATEGORIAS_GASTO = [
   "Alimentación", "Transporte", "Vivienda", "Servicios", "Salud",
   "Entretenimiento", "Educación", "Ropa", "Suscripciones", "Deudas", "Préstamo", "Ahorro", "Mascotas", "Otros"
 ];
-export const CATEGORIAS_INGRESO = ["Salario", "Freelance", "Ventas", "Préstamo", "Ahorro", "Regalo", "Inversión", "Devolución", "Otros"];
+export const CATEGORIAS_INGRESO = ["Salario", "Ventas", "Trabajo", "Devolución", "Préstamo", "Otros"];
 
 export const TIPOS_CUENTA = [
   { id: "efectivo", label: "Efectivo" },

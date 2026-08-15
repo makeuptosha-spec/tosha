@@ -295,14 +295,14 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
                   {iconoCuenta(c)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: 0 }}>{c.nombre}</p>
-                  <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>{TIPOS_CUENTA.find(t => t.id === c.tipo)?.label}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nombre}</p>
+                  <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{TIPOS_CUENTA.find(t => t.id === c.tipo)?.label}</p>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontSize: 16, fontWeight: 800, color: esTC ? "var(--danger)" : (c.saldo < 0 ? "var(--danger)" : "var(--dark)"), margin: 0 }}>{fmt(esTC ? deuda : c.saldo)}</p>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: esTC ? "var(--danger)" : (c.saldo < 0 ? "var(--danger)" : "var(--dark)"), margin: 0, whiteSpace: "nowrap" }}>{fmt(esTC ? deuda : c.saldo)}</p>
                   {esTC && <p style={{ fontSize: 10, color: "var(--mid)", margin: "2px 0 0" }}>debes</p>}
                 </div>
-                <div style={{ display: "flex", gap: 4 }}>
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                   {esTC && <button onClick={() => abrirPagoTarjeta(c)} title="Pagar tarjeta" style={{ background: "var(--primary-pale)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>💳</button>}
                   <button onClick={() => abrirAjuste(c)} title="Ajustar saldo" style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚖️</button>
                   <button onClick={() => abrirEdicion(c)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 32, height: 32, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={14} /></button>
