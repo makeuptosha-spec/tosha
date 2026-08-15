@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 import { fmt, esHoy, esEsteMes, hoyObj, StatCard, ProgressBar, useTema, colorTema, parseFecha, iconoCuenta } from "../utils.jsx";
 import { calcularSaldo } from "./Cuentas.jsx";
+import { estadoFactura } from "./Facturas.jsx";
 
 const HORA = new Date().getHours();
 const SALUDO = HORA < 12 ? "¡Buenos días! ☀️" : HORA < 18 ? "¡Buenas tardes! 💚" : "¡Buenas noches! 🌙";
@@ -97,6 +98,16 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
       .slice(0, 5);
   }, [facturasRecurrentes, pagosFactura, mes]);
 
+  // ── RESUMEN FACTURAS RECURRENTES ──
+  const resumenFacturas = useMemo(() => {
+    const activas = facturasRecurrentes.filter(f => f.activa !== false);
+    const conEstado = activas.map(f => ({ ...f, ...estadoFactura(f, pagosFactura) }));
+    const pagadas = conEstado.filter(f => f.estado === "pagada").length;
+    const totalMes = conEstado.reduce((s, f) => s + Number(f.montoEstimado), 0);
+    const totalPendiente = conEstado.filter(f => f.estado !== "pagada").reduce((s, f) => s + Number(f.montoEstimado), 0);
+    return { total: activas.length, pagadas, pendientes: activas.length - pagadas, totalMes, totalPendiente };
+  }, [facturasRecurrentes, pagosFactura]);
+
   // ── PRESUPUESTOS EN RIESGO ──
   const presupuestosEnRiesgo = useMemo(() => {
     const gastoPorCat = {};
@@ -178,6 +189,29 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
         <StatCard icon="dashboard" label="Neto del mes" value={fmt(netoMes)} sub={netoMes >= 0 ? "Ahorrando 🎉" : "Gastando de más"} color={netoMes >= 0 ? "var(--success)" : "var(--danger)"} />
         <StatCard icon="money" label="Gastado hoy" value={fmt(gastosHoy)} color="var(--primary)" />
       </div>
+
+      {/* RESUMEN FACTURAS RECURRENTES */}
+      {resumenFacturas.total > 0 && (
+        <div style={{ background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1.5px solid var(--accent-soft)", boxShadow: "var(--shadow)" }}>
+          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)", marginBottom: 12 }}>🧾 Facturas recurrentes del mes</p>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+            <span style={{ fontSize: 12, color: "var(--mid)" }}>✅ Pagadas</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--success)" }}>{resumenFacturas.pagadas} de {resumenFacturas.total}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+            <span style={{ fontSize: 12, color: "var(--mid)" }}>⏳ Por pagar</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: resumenFacturas.pendientes > 0 ? "var(--accent)" : "var(--dark)" }}>{resumenFacturas.pendientes}</span>
+          </div>
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10, display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 12, color: "var(--mid)" }}>Total facturas recurrentes</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: "var(--dark)" }}>{fmt(resumenFacturas.totalMes)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "var(--mid)" }}>Pendiente por pagar</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: resumenFacturas.totalPendiente > 0 ? "var(--accent)" : "var(--dark)" }}>{fmt(resumenFacturas.totalPendiente)}</span>
+          </div>
+        </div>
+      )}
 
       {/* FACTURAS PRÓXIMAS */}
       {facturasProximas.length > 0 && (

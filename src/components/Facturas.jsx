@@ -4,7 +4,7 @@ import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestor
 import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual, iconoCuenta } from "../utils.jsx";
 import Deudas from "./Deudas.jsx";
 
-const estadoFactura = (factura, pagosFactura) => {
+export const estadoFactura = (factura, pagosFactura) => {
   const mes = mesActual();
   const pago = pagosFactura.find(p => p.facturaRecurrenteId === factura.id && p.mes === mes);
   if (pago?.pagado) return { estado: "pagada", pago };
