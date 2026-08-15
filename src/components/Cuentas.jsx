@@ -148,7 +148,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       )}
 
       {/* BALANCE TOTAL */}
-      <div style={{ background: "linear-gradient(135deg, var(--primary-deep) 0%, var(--primary) 100%)", borderRadius: 24, padding: "24px", color: "#fff" }}>
+      <div style={{ background: "linear-gradient(135deg, #374151 0%, #1F2937 100%)", borderRadius: 24, padding: "24px", color: "#fff" }}>
         <p style={{ fontSize: 12, opacity: 0.85, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Balance total</p>
         <p style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 800, marginTop: 4 }}>{fmt(balanceTotal)}</p>
         <p style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>{cuentasConSaldo.length} {cuentasConSaldo.length === 1 ? "cuenta" : "cuentas"}</p>
@@ -298,8 +298,10 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nombre}</p>
                   <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{TIPOS_CUENTA.find(t => t.id === c.tipo)?.label}</p>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <p style={{ fontSize: 16, fontWeight: 800, color: esTC ? "var(--danger)" : (c.saldo < 0 ? "var(--danger)" : "var(--dark)"), margin: 0, whiteSpace: "nowrap" }}>{fmt(esTC ? deuda : c.saldo)}</p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: esTC ? "var(--danger)" : (c.saldo < 0 ? "var(--danger)" : "var(--dark)"), margin: 0 }}>{fmt(esTC ? deuda : c.saldo)}</p>
                   {esTC && <p style={{ fontSize: 10, color: "var(--mid)", margin: "2px 0 0" }}>debes</p>}
                 </div>
                 <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
