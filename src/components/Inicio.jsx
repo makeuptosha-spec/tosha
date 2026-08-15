@@ -72,12 +72,12 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
 
   const movimientosVisibles = useMemo(() => movimientos.filter(m => m.tipo !== "transferencia"), [movimientos]);
 
-  const balanceTotal = useMemo(() => cuentas.reduce((s, c) => s + calcularSaldo(c, movimientos), 0), [cuentas, movimientos]);
-
   const cuentasConSaldo = useMemo(() =>
     cuentas.filter(c => c.activa !== false).map(c => ({ ...c, saldo: calcularSaldo(c, movimientos) })),
     [cuentas, movimientos]
   );
+
+  const balanceTotal = useMemo(() => cuentasConSaldo.reduce((s, c) => s + c.saldo, 0), [cuentasConSaldo]);
 
   const movHoy = movimientosVisibles.filter(m => esHoy(m.fecha));
   const movMes = movimientosVisibles.filter(m => esEsteMes(m.fecha));
@@ -162,7 +162,7 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
       {/* BANNER */}
-      <div style={{ background: "linear-gradient(135deg, var(--primary-deep) 0%, var(--primary) 100%)", borderRadius: 24, padding: "24px 24px 20px", color: "#fff", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: "linear-gradient(135deg, #374151 0%, #1F2937 100%)", borderRadius: 24, padding: "24px 24px 20px", color: "#fff", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -24, right: -24, width: 110, height: 110, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
         <p style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: 13, opacity: 0.88, marginBottom: 2 }}>{SALUDO}</p>
         <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 700, marginBottom: 2 }}>Balance total: {fmt(balanceTotal)}</h2>
