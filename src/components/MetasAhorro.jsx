@@ -114,15 +114,13 @@ export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }
             <label style={{ fontSize: 11, color: "var(--mid)" }}>Nombre</label>
             <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Viaje a fin de año, Fondo de emergencia" />
           </div>
-          <div className="form-grid">
-            <div>
-              <label style={{ fontSize: 11, color: "var(--mid)" }}>Monto objetivo</label>
-              <input type="text" value={form.montoObjetivo ? fmtNum(form.montoObjetivo) : ""} onChange={e => setForm({ ...form, montoObjetivo: parseNum(e.target.value) })} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, color: "var(--mid)" }}>Fecha objetivo (opcional)</label>
-              <input type="date" value={form.fechaObjetivo} onChange={e => setForm({ ...form, fechaObjetivo: e.target.value })} />
-            </div>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--mid)" }}>Monto objetivo</label>
+            <input type="text" value={form.montoObjetivo ? fmtNum(form.montoObjetivo) : ""} onChange={e => setForm({ ...form, montoObjetivo: parseNum(e.target.value) })} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--mid)" }}>Fecha objetivo (opcional)</label>
+            <input type="date" value={form.fechaObjetivo} onChange={e => setForm({ ...form, fechaObjetivo: e.target.value })} />
           </div>
           <button onClick={guardar} style={{ background: "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontWeight: 700, fontSize: 14 }}>
             {editandoId ? "Actualizar" : "Guardar"}

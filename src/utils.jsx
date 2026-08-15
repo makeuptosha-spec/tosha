@@ -308,7 +308,8 @@ export const globalStyles = `
   .form-grid input[type="date"] { min-width: 0; }
   .desktop-flex { display: flex; flex-direction: column; gap: 20px; }
   .mov-toolbar { display: flex; flex-direction: column; gap: 12px; }
-  .mov-toolbar-actions { display: flex; gap: 8px; justify-content: space-between; }
+  .mov-toolbar-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .mov-toolbar-actions button { width: 100%; justify-content: center; padding: 8px 4px !important; font-size: 11px !important; }
 
   @media (min-width: 768px) {
     .app-wrapper { max-width: 1200px; padding-bottom: 30px; padding-left: 120px; padding-top: 20px; }
@@ -319,7 +320,8 @@ export const globalStyles = `
     .desktop-flex { flex-direction: row; align-items: flex-start; }
     .desktop-flex > div { flex: 1; }
     .mov-toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
-    .mov-toolbar-actions { justify-content: flex-end; }
+    .mov-toolbar-actions { display: flex; justify-content: flex-end; }
+    .mov-toolbar-actions button { width: auto; padding: 8px 16px !important; font-size: 12px !important; }
   }
 
   #reporte-imprimible { display: none; }
