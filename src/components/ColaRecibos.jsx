@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
 import { collection, getDocs, query, where, updateDoc, deleteDoc, doc, addDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, hoyLocal, CATEGORIAS_GASTO, HOGAR_ID, iconoCuenta } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, hoyLocal, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, iconoCuenta } from "../utils.jsx";
 
 export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
   const [borradores, setBorradores] = useState([]);
@@ -13,7 +13,7 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
       .then(snap => {
         const data = snap.docs
           .map(d => ({ _id: d.id, ...d.data() }))
-          .filter(b => b.estado === "pendiente" && b.tipo === "gasto")
+          .filter(b => b.estado === "pendiente" && (b.tipo === "gasto" || b.tipo === "ingreso"))
           .sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
         setBorradores(data);
       })
@@ -23,6 +23,9 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
   const actualizarCampo = (id, campo, valor) =>
     setBorradores(prev => prev.map(b => b._id === id ? { ...b, [campo]: valor } : b));
 
+  const cambiarTipo = (id, tipo) =>
+    setBorradores(prev => prev.map(b => b._id === id ? { ...b, tipo, categoriaSugerida: "" } : b));
+
   const confirmarBorrador = async (b) => {
     if (!b.monto || !b.categoriaSugerida || !b.cuentaId) {
       alert("Completa monto, categoría y cuenta.");
@@ -31,11 +34,11 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
     setGuardando(b._id);
     try {
       const nuevoMovimiento = {
-        tipo: "gasto",
+        tipo: b.tipo,
         monto: Number(b.monto),
         categoria: b.categoriaSugerida,
         cuentaId: b.cuentaId,
-        descripcion: b.comercio || b.descripcion || "Gasto escaneado",
+        descripcion: b.comercio || b.descripcion || (b.tipo === "ingreso" ? "Ingreso escaneado" : "Gasto escaneado"),
         fecha: b.fecha || hoyLocal(),
         hogarId: HOGAR_ID, uid: auth.currentUser.uid,
         fechaCreacion: new Date().toISOString()
@@ -78,6 +81,11 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => cambiarTipo(b._id, "gasto")} style={{ flex: 1, background: b.tipo === "gasto" ? "var(--danger)" : "var(--bg)", color: b.tipo === "gasto" ? "#fff" : "var(--mid)", border: "none", borderRadius: 12, padding: "10px", fontWeight: 700, fontSize: 13 }}>💸 Gasto</button>
+              <button onClick={() => cambiarTipo(b._id, "ingreso")} style={{ flex: 1, background: b.tipo === "ingreso" ? "var(--success)" : "var(--bg)", color: b.tipo === "ingreso" ? "#fff" : "var(--mid)", border: "none", borderRadius: 12, padding: "10px", fontWeight: 700, fontSize: 13 }}>💰 Ingreso</button>
+            </div>
+
             <div className="form-grid">
               <div>
                 <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Monto</label>
@@ -93,7 +101,8 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
               <div>
                 <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Categoría</label>
                 <select value={b.categoriaSugerida || ""} onChange={e => actualizarCampo(b._id, "categoriaSugerida", e.target.value)} style={{ marginTop: 4 }}>
-                  {CATEGORIAS_GASTO.map(c => <option key={c}>{c}</option>)}
+                  <option value="">Selecciona…</option>
+                  {(b.tipo === "ingreso" ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO).map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div>
@@ -115,7 +124,7 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
               disabled={guardando === b._id}
               style={{ background: guardando === b._id ? "var(--border)" : "linear-gradient(135deg, var(--success), #43A047)", color: "#fff", border: "none", borderRadius: 14, padding: "13px", fontWeight: 700, fontSize: 14 }}
             >
-              {guardando === b._id ? "Guardando…" : `✅ Confirmar gasto de ${fmt(b.monto || 0)}`}
+              {guardando === b._id ? "Guardando…" : `✅ Confirmar ${b.tipo === "ingreso" ? "ingreso" : "gasto"} de ${fmt(b.monto || 0)}`}
             </button>
           </div>
         </div>

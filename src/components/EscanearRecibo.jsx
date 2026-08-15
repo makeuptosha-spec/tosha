@@ -1,28 +1,31 @@
 import { useState } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { CATEGORIAS_GASTO, HOGAR_ID, hoyLocal } from "../utils.jsx";
+import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, hoyLocal } from "../utils.jsx";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
-const PROMPT = `Eres un extractor de datos para recibos y facturas de gastos personales en Colombia.
-Analiza esta imagen de un recibo, factura o comprobante de pago y extrae la información de la compra.
+const PROMPT = `Eres un extractor de datos para recibos, facturas y comprobantes de movimientos financieros personales en Colombia.
+Analiza esta imagen y extrae la información del movimiento. Puede ser un GASTO (compra, pago, factura) o un INGRESO (pago recibido, consignación, transferencia recibida, comprobante de salario).
 
-Categorías válidas (usa la que más se acerque): ${CATEGORIAS_GASTO.join(", ")}.
+Categorías de gasto válidas: ${CATEGORIAS_GASTO.join(", ")}.
+Categorías de ingreso válidas: ${CATEGORIAS_INGRESO.join(", ")}.
 
 Responde ÚNICAMENTE con un JSON, sin texto adicional, sin markdown:
 {
-  "comercio": "nombre del negocio o establecimiento",
+  "comercio": "nombre del negocio, establecimiento o quien paga/consigna",
   "monto": 45000,
   "fecha": "2026-08-09",
+  "tipo": "gasto",
   "categoriaSugerida": "Alimentación",
-  "descripcion": "breve resumen de la compra"
+  "descripcion": "breve resumen del movimiento"
 }
 
 Reglas:
-- monto: número entero sin puntos ni símbolos (45000 no $45.000), es el TOTAL pagado
+- monto: número entero sin puntos ni símbolos (45000 no $45.000), es el TOTAL
 - fecha: formato YYYY-MM-DD si aparece en el recibo, si no usa null
-- categoriaSugerida: debe ser EXACTAMENTE una de las categorías listadas arriba
+- tipo: "gasto" o "ingreso" según corresponda. Si tienes dudas, usa "gasto"
+- categoriaSugerida: EXACTAMENTE una categoría de la lista que corresponda al tipo elegido
 - Si no puedes leer un campo con certeza usa null
 - NADA fuera del JSON`;
 
@@ -118,12 +121,14 @@ export default function EscanearRecibo({ onBorradorCreado, onClose }) {
       const datos = await llamarGroq(base64, mediaType);
       if (!datos.monto) throw new Error("No se pudo leer el monto del recibo");
 
+      const tipo = datos.tipo === "ingreso" ? "ingreso" : "gasto";
+      const categorias = tipo === "ingreso" ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO;
       await addDoc(collection(db, "borradores"), {
         ...datos,
-        tipo: "gasto",
+        tipo,
         estado: "pendiente",
         fecha: datos.fecha || hoyLocal(),
-        categoriaSugerida: CATEGORIAS_GASTO.includes(datos.categoriaSugerida) ? datos.categoriaSugerida : "Otros",
+        categoriaSugerida: categorias.includes(datos.categoriaSugerida) ? datos.categoriaSugerida : "Otros",
         hogarId: HOGAR_ID, uid: auth.currentUser.uid,
         fechaCreacion: new Date().toISOString()
       });
