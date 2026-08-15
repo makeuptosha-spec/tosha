@@ -306,6 +306,8 @@ export const globalStyles = `
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .form-grid > div { min-width: 0; }
   .desktop-flex { display: flex; flex-direction: column; gap: 20px; }
+  .mov-toolbar { display: flex; flex-direction: column; gap: 12px; }
+  .mov-toolbar-actions { display: flex; gap: 8px; justify-content: space-between; }
 
   @media (min-width: 768px) {
     .app-wrapper { max-width: 1200px; padding-bottom: 30px; padding-left: 120px; padding-top: 20px; }
@@ -315,6 +317,8 @@ export const globalStyles = `
     .form-grid { grid-template-columns: repeat(4, 1fr); }
     .desktop-flex { flex-direction: row; align-items: flex-start; }
     .desktop-flex > div { flex: 1; }
+    .mov-toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
+    .mov-toolbar-actions { justify-content: flex-end; }
   }
 
   #reporte-imprimible { display: none; }
