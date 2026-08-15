@@ -259,15 +259,13 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
             </div>
           </div>
 
-          <div className="form-grid">
-            <div>
-              <label style={{ fontSize: 11, color: "var(--mid)" }}>Fecha</label>
-              <input type="date" value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, color: "var(--mid)" }}>Descripción (opcional)</label>
-              <input value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Ej: Mercado del mes" />
-            </div>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--mid)" }}>Fecha</label>
+            <input type="date" value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--mid)" }}>Descripción (opcional)</label>
+            <input value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Ej: Mercado del mes" />
           </div>
 
           <button onClick={guardar} style={{ background: form.tipo === "ingreso" ? "linear-gradient(135deg, var(--success), #43A047)" : "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 700, fontSize: 14 }}>

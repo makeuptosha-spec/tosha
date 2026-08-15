@@ -86,15 +86,13 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
               <button onClick={() => cambiarTipo(b._id, "ingreso")} style={{ flex: 1, background: b.tipo === "ingreso" ? "var(--success)" : "var(--bg)", color: b.tipo === "ingreso" ? "#fff" : "var(--mid)", border: "none", borderRadius: 12, padding: "10px", fontWeight: 700, fontSize: 13 }}>💰 Ingreso</button>
             </div>
 
-            <div className="form-grid">
-              <div>
-                <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Monto</label>
-                <input type="text" value={b.monto ? fmtNum(b.monto) : ""} onChange={e => actualizarCampo(b._id, "monto", parseNum(e.target.value))} style={{ marginTop: 4 }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Fecha</label>
-                <input type="date" value={(b.fecha || "").slice(0, 10)} onChange={e => actualizarCampo(b._id, "fecha", e.target.value)} style={{ marginTop: 4 }} />
-              </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Monto</label>
+              <input type="text" value={b.monto ? fmtNum(b.monto) : ""} onChange={e => actualizarCampo(b._id, "monto", parseNum(e.target.value))} style={{ marginTop: 4 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Fecha</label>
+              <input type="date" value={(b.fecha || "").slice(0, 10)} onChange={e => actualizarCampo(b._id, "fecha", e.target.value)} style={{ marginTop: 4 }} />
             </div>
 
             <div className="form-grid">
