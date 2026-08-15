@@ -191,11 +191,11 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
             <button onClick={() => setMostrarDictar(true)} style={{ background: "var(--bg)", color: "var(--primary-deep)", border: "1.5px solid var(--primary-soft)", borderRadius: 50, padding: "8px 12px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
               🎤
             </button>
-            <button onClick={() => setMostrarEscanear(true)} style={{ background: "var(--bg)", color: "var(--primary-deep)", border: "1.5px solid var(--primary-soft)", borderRadius: 50, padding: "8px 16px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-              <Icon name="camera" size={14} /> Escanear
+            <button onClick={() => setMostrarEscanear(true)} title="Escanear recibo" style={{ background: "var(--bg)", color: "var(--primary-deep)", border: "1.5px solid var(--primary-soft)", borderRadius: 50, padding: "8px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="camera" size={16} />
             </button>
-            <button onClick={() => { setMostrarForm(!mostrarForm); setEditandoId(null); setForm(formBase); }} style={{ background: mostrarForm ? "var(--mid)" : "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 50, padding: "8px 20px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
-              {mostrarForm ? <><Icon name="close" size={16} /> Cancelar</> : <><Icon name="plus" size={16} /> Agregar</>}
+            <button onClick={() => { setMostrarForm(!mostrarForm); setEditandoId(null); setForm(formBase); }} title={mostrarForm ? "Cancelar" : "Agregar movimiento"} style={{ background: mostrarForm ? "var(--mid)" : "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 50, padding: "8px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {mostrarForm ? <Icon name="close" size={16} /> : <Icon name="plus" size={16} />}
             </button>
           </div>
         </div>
