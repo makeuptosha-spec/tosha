@@ -46,7 +46,11 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
       const ref = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(m => [{ id: ref.id, ...nuevoMovimiento }, ...m]);
       await deleteDoc(doc(db, "borradores", b._id));
-      setBorradores(prev => prev.filter(x => x._id !== b._id));
+      setBorradores(prev => {
+        const restantes = prev.filter(x => x._id !== b._id);
+        if (restantes.length === 0 && onCerrar) onCerrar();
+        return restantes;
+      });
     } catch (err) {
       alert("Error al guardar: " + err.message);
     } finally {
@@ -56,7 +60,11 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
 
   const descartarBorrador = async (id) => {
     await deleteDoc(doc(db, "borradores", id));
-    setBorradores(prev => prev.filter(b => b._id !== id));
+    setBorradores(prev => {
+      const restantes = prev.filter(b => b._id !== id);
+      if (restantes.length === 0 && onCerrar) onCerrar();
+      return restantes;
+    });
   };
 
   if (cargando) return (
