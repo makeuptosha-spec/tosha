@@ -23,8 +23,8 @@ const HeartDot = ({ cx, cy, color, index }) => {
   );
 };
 
-const COLOR_INGRESO = "#DC2626";
-const COLOR_GASTO = "#16A34A";
+const COLOR_INGRESO = "#16A34A";
+const COLOR_GASTO = "#DC2626";
 
 const TooltipGrafica = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
