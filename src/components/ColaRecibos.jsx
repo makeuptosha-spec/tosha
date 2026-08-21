@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
 import { collection, getDocs, query, where, updateDoc, deleteDoc, doc, addDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, hoyLocal, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, iconoCuenta } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, hoyLocal, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, iconoCuenta, registrarImpuesto4x1000 } from "../utils.jsx";
 
 export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
   const [borradores, setBorradores] = useState([]);
@@ -45,6 +45,10 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
       };
       const ref = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(m => [{ id: ref.id, ...nuevoMovimiento }, ...m]);
+      if (b.tipo === "gasto") {
+        const impuesto = await registrarImpuesto4x1000({ cuenta: cuentas.find(c => c.id === b.cuentaId), monto: b.monto, fecha: nuevoMovimiento.fecha, origen: nuevoMovimiento.descripcion, uid: auth.currentUser.uid });
+        if (impuesto) setMovimientos(m => [impuesto, ...m]);
+      }
       await deleteDoc(doc(db, "borradores", b._id));
       setBorradores(prev => {
         const restantes = prev.filter(x => x._id !== b._id);

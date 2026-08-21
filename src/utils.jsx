@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "./firebase.js";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, addDoc } from "firebase/firestore";
 
 // ── TEMA (claro/oscuro) ──
 const TEMA_KEY = "tosha-tema";
@@ -53,7 +53,7 @@ export async function fetchPropio(nombreColeccion, uid) {
 // ── CATEGORÍAS POR DEFECTO ──
 export const CATEGORIAS_GASTO = [
   "Alimentación", "Transporte", "Vivienda", "Servicios", "Salud",
-  "Entretenimiento", "Educación", "Ropa", "Suscripciones", "Deudas", "Préstamo", "Ahorro", "Mascotas", "Otros"
+  "Entretenimiento", "Educación", "Ropa", "Suscripciones", "Deudas", "Préstamo", "Ahorro", "Impuestos", "Mascotas", "Otros"
 ];
 export const CATEGORIAS_INGRESO = ["Salario", "Ventas", "Trabajo", "Devolución", "Préstamo", "Otros"];
 
@@ -92,6 +92,31 @@ export const iconoCuenta = (cuenta) => {
     default: return "👛";
   }
 };
+
+// ── GMF (4x1000) ──
+// Colombia grava con 0.4% cada retiro/débito de una cuenta bancaria. Por ley
+// se puede marcar UNA cuenta como exenta (normalmente la de nómina); el resto
+// de cuentas tipo "banco"/"ahorros" sí paga. Efectivo y tarjeta de crédito
+// nunca aplican (no son retiros de cuenta bancaria).
+export const TASA_4X1000 = 0.004;
+
+export const aplica4x1000 = (cuenta) =>
+  !!cuenta && (cuenta.tipo === "banco" || cuenta.tipo === "ahorros") && !cuenta.exento4x1000;
+
+// Crea (si aplica) un movimiento de gasto aparte por el 4x1000 de un débito.
+// Devuelve el doc creado (con id) o null si la cuenta no está gravada.
+export async function registrarImpuesto4x1000({ cuenta, monto, fecha, origen, uid }) {
+  if (!aplica4x1000(cuenta)) return null;
+  const valor = Math.round(Number(monto) * TASA_4X1000);
+  if (!valor) return null;
+  const datos = {
+    tipo: "gasto", monto: valor, categoria: "Impuestos", cuentaId: cuenta.id,
+    descripcion: `4x1000${origen ? " · " + origen : ""}`,
+    fecha, hogarId: HOGAR_ID, uid, fechaCreacion: new Date().toISOString(), esImpuesto4x1000: true,
+  };
+  const ref = await addDoc(collection(db, "movimientos"), datos);
+  return { id: ref.id, ...datos };
+}
 
 // ── UTILIDADES DE FORMATO Y FECHAS ──
 export const fmt = (n) => {

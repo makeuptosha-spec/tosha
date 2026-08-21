@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, fmtFecha, parseFecha, hoyLocal, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, iconoCuenta } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, fmtFecha, parseFecha, hoyLocal, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, iconoCuenta, registrarImpuesto4x1000 } from "../utils.jsx";
 import EscanearRecibo from "./EscanearRecibo.jsx";
 import ColaRecibos from "./ColaRecibos.jsx";
 import DictarMovimiento from "./DictarMovimiento.jsx";
@@ -94,7 +94,12 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
         datos.fechaCreacion = new Date().toISOString();
         const ref = await addDoc(collection(db, "movimientos"), datos);
         setMovimientos(m => [{ id: ref.id, ...datos }, ...m]);
-        showToast(form.tipo === "ingreso" ? "✅ Ingreso registrado" : "✅ Gasto registrado");
+        let impuesto = null;
+        if (form.tipo === "gasto") {
+          impuesto = await registrarImpuesto4x1000({ cuenta: cuentas.find(c => c.id === form.cuentaId), monto: form.monto, fecha: form.fecha, origen: form.descripcion || form.categoria, uid: auth.currentUser.uid });
+          if (impuesto) setMovimientos(m => [impuesto, ...m]);
+        }
+        showToast(form.tipo === "ingreso" ? "✅ Ingreso registrado" : impuesto ? `✅ Gasto registrado (+${fmt(impuesto.monto)} de 4x1000)` : "✅ Gasto registrado");
       }
       setForm(formBase); setEditandoId(null); setMostrarForm(false);
     } catch { showToast("❌ Error al guardar", "danger"); }
@@ -123,8 +128,13 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
     try {
       const ref = await addDoc(collection(db, "movimientos"), datos);
       setMovimientos(m => [{ id: ref.id, ...datos }, ...m]);
+      let impuesto = null;
+      if (tipo === "gasto") {
+        impuesto = await registrarImpuesto4x1000({ cuenta: cuentas.find(c => c.id === cuentaId), monto, fecha: datos.fecha, origen: descripcion || categoria, uid: auth.currentUser.uid });
+        if (impuesto) setMovimientos(m => [impuesto, ...m]);
+      }
       setMostrarDictar(false);
-      showToast(tipo === "ingreso" ? "✅ Ingreso registrado por voz" : "✅ Gasto registrado por voz");
+      showToast(tipo === "ingreso" ? "✅ Ingreso registrado por voz" : impuesto ? `✅ Gasto registrado por voz (+${fmt(impuesto.monto)} de 4x1000)` : "✅ Gasto registrado por voz");
     } catch { showToast("❌ Error al guardar", "danger"); }
   };
 
