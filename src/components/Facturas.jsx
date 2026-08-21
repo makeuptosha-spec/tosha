@@ -387,26 +387,21 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
                     <span style={{ fontSize: 10, background: est.bg, color: est.color, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>{est.label}</span>
                   </div>
                   <p style={{ fontSize: 11, color: "var(--mid)", margin: "3px 0 0" }}>{f.categoria} · Vence el {f.diaVencimiento} de cada mes</p>
-                  {(f.codigoReferencia || f.urlPago) && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                      {f.codigoReferencia && (
-                        <span onClick={() => copiarCodigo(f.codigoReferencia)} title="Copiar código" style={{ fontSize: 10, color: "var(--primary-deep)", background: "var(--primary-pale)", padding: "2px 8px", borderRadius: 20, fontWeight: 700, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>🔖 {f.codigoReferencia}</span>
-                      )}
-                      {f.urlPago && (
-                        <span onClick={() => abrirLinkPago(f.urlPago)} title="Abrir link de pago" style={{ fontSize: 10, color: "var(--accent)", background: "var(--accent-pale)", padding: "2px 8px", borderRadius: 20, fontWeight: 700, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>🔗 {f.urlPago.replace(/^https?:\/\//i, "")}</span>
-                      )}
+                  {f.codigoReferencia && (
+                    <div style={{ marginTop: 6 }}>
+                      <span onClick={() => copiarCodigo(f.codigoReferencia)} title="Copiar código" style={{ fontSize: 10, color: "var(--primary-deep)", background: "var(--primary-pale)", padding: "2px 8px", borderRadius: 20, fontWeight: 700, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>🔖 {f.codigoReferencia}</span>
                     </div>
                   )}
                 </div>
                 <p style={{ fontSize: 16, fontWeight: 800, color: "var(--dark)", margin: 0, flexShrink: 0 }}>{fmt(f.montoEstimado)}</p>
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 12, flexWrap: "wrap" }}>
-                {f.urlPago && (
-                  <button onClick={() => abrirLinkPago(f.urlPago)} style={{ flex: "1 1 90px", background: "var(--accent-pale)", color: "var(--accent)", border: "1px solid var(--accent-soft)", borderRadius: 10, padding: "9px", fontSize: 12, fontWeight: 700 }}>
-                    💳 Pagar
+                {f.estado !== "pagada" && f.urlPago && (
+                  <button onClick={() => { abrirLinkPago(f.urlPago); abrirPago(f); }} style={{ flex: "1 1 90px", background: "linear-gradient(135deg, var(--success), #43A047)", color: "#fff", border: "none", borderRadius: 10, padding: "9px", fontSize: 12, fontWeight: 700 }}>
+                    💳 Pagar y registrar
                   </button>
                 )}
-                {f.estado !== "pagada" && (
+                {f.estado !== "pagada" && !f.urlPago && (
                   <button onClick={() => abrirPago(f)} style={{ flex: "1 1 90px", background: "linear-gradient(135deg, var(--success), #43A047)", color: "#fff", border: "none", borderRadius: 10, padding: "9px", fontSize: 12, fontWeight: 700 }}>
                     ✅ Marcar pagada
                   </button>
