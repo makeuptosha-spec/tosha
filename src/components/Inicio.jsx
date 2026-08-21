@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { fmt, esHoy, esEsteMes, hoyObj, StatCard, ProgressBar, useTema, colorTema, parseFecha, iconoCuenta } from "../utils.jsx";
+import { fmt, esEsteMes, hoyObj, StatCard, ProgressBar, useTema, colorTema, parseFecha, iconoCuenta } from "../utils.jsx";
 import { calcularSaldo } from "./Cuentas.jsx";
 import { estadoFactura } from "./Facturas.jsx";
 
@@ -86,12 +86,9 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
     [cuentasConSaldo]
   );
 
-  const movHoy = movimientosVisibles.filter(m => esHoy(m.fecha));
   const movMes = movimientosVisibles.filter(m => esEsteMes(m.fecha));
   const ingresosMes = movMes.filter(m => m.tipo === "ingreso").reduce((s, m) => s + Number(m.monto), 0);
   const gastosMes = movMes.filter(m => m.tipo === "gasto").reduce((s, m) => s + Number(m.monto), 0);
-  const netoMes = ingresosMes - gastosMes;
-  const gastosHoy = movHoy.filter(m => m.tipo === "gasto").reduce((s, m) => s + Number(m.monto), 0);
 
   // ── FACTURAS PRÓXIMAS ──
   const mes = `${hoyObj.getFullYear()}-${String(hoyObj.getMonth() + 1).padStart(2, "0")}`;
@@ -193,8 +190,8 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
       <div className="stats-grid">
         <StatCard icon="trending" label="Ingresos del mes" value={fmt(ingresosMes)} color="var(--success)" />
         <StatCard icon="trendingDown" label="Gastos del mes" value={fmt(gastosMes)} color="var(--danger)" />
-        <StatCard icon="dashboard" label="Neto del mes" value={fmt(netoMes)} sub={netoMes >= 0 ? "Ahorrando 🎉" : "Gastando de más"} color={netoMes >= 0 ? "var(--success)" : "var(--danger)"} />
-        <StatCard icon="money" label="Gastado hoy" value={fmt(gastosHoy)} color="var(--primary)" />
+        <StatCard icon="wallet" label="Me deben" value={fmt(totalMeDeben)} color="var(--primary)" />
+        <StatCard icon="alert" label="Debo" value={fmt(totalDebo)} color="var(--danger)" />
       </div>
 
       {/* RESUMEN FACTURAS RECURRENTES */}
@@ -240,37 +237,19 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
         </div>
       )}
 
-      {/* DEUDAS Y AHORRO */}
-      {(deudasActivas.length > 0 || metasActivas.length > 0) && (
-        <div className="desktop-flex">
-          {deudasActivas.length > 0 && (
-            <div style={{ flex: 1, background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1.5px solid var(--danger-border)", boxShadow: "var(--shadow)" }}>
-              <p style={{ fontWeight: 700, fontSize: 14, color: "var(--danger)", marginBottom: 12 }}>🤝 Deudas y préstamos</p>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: "var(--mid)" }}>Yo debo</span>
-                <span style={{ fontSize: 14, fontWeight: 800, color: "var(--danger)" }}>{fmt(totalDebo)}</span>
+      {/* AHORRO */}
+      {metasActivas.length > 0 && (
+        <div style={{ background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1.5px solid var(--primary-soft)", boxShadow: "var(--shadow)" }}>
+          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--primary-deep)", marginBottom: 12 }}>🎯 Ahorro total</p>
+          <p style={{ fontSize: 20, fontWeight: 800, color: "var(--primary-deep)", marginBottom: metaMasCercaCumplir ? 10 : 0 }}>{fmt(totalAhorrado)}</p>
+          {metaMasCercaCumplir && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: "var(--mid)" }}>{metaMasCercaCumplir.nombre}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--primary-deep)" }}>{metaMasCercaCumplir.pct}%</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, color: "var(--mid)" }}>Me deben</span>
-                <span style={{ fontSize: 14, fontWeight: 800, color: "var(--primary-deep)" }}>{fmt(totalMeDeben)}</span>
-              </div>
-            </div>
-          )}
-
-          {metasActivas.length > 0 && (
-            <div style={{ flex: 1, background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1.5px solid var(--primary-soft)", boxShadow: "var(--shadow)" }}>
-              <p style={{ fontWeight: 700, fontSize: 14, color: "var(--primary-deep)", marginBottom: 12 }}>🎯 Ahorro total</p>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "var(--primary-deep)", marginBottom: metaMasCercaCumplir ? 10 : 0 }}>{fmt(totalAhorrado)}</p>
-              {metaMasCercaCumplir && (
-                <>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, color: "var(--mid)" }}>{metaMasCercaCumplir.nombre}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--primary-deep)" }}>{metaMasCercaCumplir.pct}%</span>
-                  </div>
-                  <ProgressBar pct={metaMasCercaCumplir.pct} color="var(--primary)" bg="var(--bg)" height={8} />
-                </>
-              )}
-            </div>
+              <ProgressBar pct={metaMasCercaCumplir.pct} color="var(--primary)" bg="var(--bg)" height={8} />
+            </>
           )}
         </div>
       )}
