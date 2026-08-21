@@ -67,7 +67,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
   const [guardandoPago, setGuardandoPago] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const formBase = { nombre: "", montoEstimado: "", categoria: "", cuentaId: "", diaVencimiento: "1" };
+  const formBase = { nombre: "", montoEstimado: "", categoria: "", cuentaId: "", diaVencimiento: "1", codigoReferencia: "" };
   const [form, setForm] = useState(formBase);
 
   const showToast = (msg, tipo = "ok") => { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); };
@@ -105,7 +105,8 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
     if (!form.nombre || !form.montoEstimado || !form.categoria || !form.cuentaId || !form.diaVencimiento) return showToast("⚠️ Completa todos los campos", "warn");
     const datos = {
       nombre: form.nombre, montoEstimado: Number(form.montoEstimado), categoria: form.categoria,
-      cuentaId: form.cuentaId, diaVencimiento: Number(form.diaVencimiento), activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
+      cuentaId: form.cuentaId, diaVencimiento: Number(form.diaVencimiento), codigoReferencia: form.codigoReferencia || null,
+      activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
     try {
       if (editandoId) {
@@ -123,8 +124,13 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
   };
 
   const abrirEdicion = (f) => {
-    setForm({ nombre: f.nombre, montoEstimado: String(f.montoEstimado), categoria: f.categoria, cuentaId: f.cuentaId, diaVencimiento: String(f.diaVencimiento) });
+    setForm({ nombre: f.nombre, montoEstimado: String(f.montoEstimado), categoria: f.categoria, cuentaId: f.cuentaId, diaVencimiento: String(f.diaVencimiento), codigoReferencia: f.codigoReferencia || "" });
     setEditandoId(f.id); setMostrarForm(true);
+  };
+
+  const copiarCodigo = async (codigo) => {
+    try { await navigator.clipboard.writeText(codigo); showToast("📋 Código copiado"); }
+    catch { showToast("❌ No se pudo copiar", "danger"); }
   };
 
   const confirmarEliminar = async () => {
@@ -248,6 +254,10 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
             <label style={{ fontSize: 11, color: "var(--mid)" }}>Nombre</label>
             <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Arriendo, Netflix, Energía" />
           </div>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--mid)" }}>Ref. / código de factura (opcional)</label>
+            <input value={form.codigoReferencia} onChange={e => setForm({ ...form, codigoReferencia: e.target.value })} placeholder="Ej: número de cuenta/contrato pa pagar" />
+          </div>
           <div className="form-grid">
             <div>
               <label style={{ fontSize: 11, color: "var(--mid)" }}>Monto estimado</label>
@@ -286,6 +296,15 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
           <div className="animate" style={{ background: "var(--white)", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 16 }}>Marcar "{pagando.nombre}" como pagada</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {pagando.codigoReferencia && (
+                <div onClick={() => copiarCodigo(pagando.codigoReferencia)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "var(--primary-pale)", padding: "10px 14px", borderRadius: 12, cursor: "pointer" }}>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 10, color: "var(--primary-deep)", fontWeight: 700, margin: 0 }}>REF. / CÓDIGO</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pagando.codigoReferencia}</p>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--primary-deep)", flexShrink: 0 }}>📋 Copiar</span>
+                </div>
+              )}
               <div>
                 <label style={{ fontSize: 11, color: "var(--mid)" }}>Monto pagado</label>
                 <input type="text" value={montoPago ? fmtNum(montoPago) : ""} onChange={e => setMontoPago(parseNum(e.target.value))} />
@@ -353,6 +372,11 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
                     <span style={{ fontSize: 10, background: est.bg, color: est.color, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>{est.label}</span>
                   </div>
                   <p style={{ fontSize: 11, color: "var(--mid)", margin: "3px 0 0" }}>{f.categoria} · Vence el {f.diaVencimiento} de cada mes</p>
+                  {f.codigoReferencia && (
+                    <div onClick={() => copiarCodigo(f.codigoReferencia)} style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6, cursor: "pointer" }}>
+                      <span style={{ fontSize: 10, color: "var(--primary-deep)", background: "var(--primary-pale)", padding: "2px 8px", borderRadius: 20, fontWeight: 700, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🔖 {f.codigoReferencia}</span>
+                    </div>
+                  )}
                 </div>
                 <p style={{ fontSize: 16, fontWeight: 800, color: "var(--dark)", margin: 0, flexShrink: 0 }}>{fmt(f.montoEstimado)}</p>
               </div>
