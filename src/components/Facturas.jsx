@@ -135,7 +135,9 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
   };
 
   const abrirLinkPago = (url) => {
-    const conProtocolo = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    const limpio = (url || "").trim();
+    if (/^(javascript|data|vbscript|file):/i.test(limpio)) return showToast("❌ Ese link no se puede abrir", "danger");
+    const conProtocolo = /^https?:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
     window.open(conProtocolo, "_blank", "noopener,noreferrer");
   };
 
