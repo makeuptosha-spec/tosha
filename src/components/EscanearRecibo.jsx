@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, hoyLocal } from "../utils.jsx";
+import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, hoyLocal, limpiarRespuestaIA } from "../utils.jsx";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
@@ -118,17 +118,18 @@ export default function EscanearRecibo({ onBorradorCreado, onClose }) {
       }
 
       setProgreso("Analizando recibo con IA…");
-      const datos = await llamarGroq(base64, mediaType);
+      const crudo = await llamarGroq(base64, mediaType);
+      const datos = limpiarRespuestaIA(crudo);
       if (!datos.monto) throw new Error("No se pudo leer el monto del recibo");
 
-      const tipo = datos.tipo === "ingreso" ? "ingreso" : "gasto";
-      const categorias = tipo === "ingreso" ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO;
       await addDoc(collection(db, "borradores"), {
-        ...datos,
-        tipo,
+        comercio: datos.comercio,
+        monto: datos.monto,
+        descripcion: datos.descripcion,
+        tipo: datos.tipo,
+        categoriaSugerida: datos.categoriaSugerida,
         estado: "pendiente",
         fecha: datos.fecha || hoyLocal(),
-        categoriaSugerida: categorias.includes(datos.categoriaSugerida) ? datos.categoriaSugerida : "Otros",
         hogarId: HOGAR_ID, uid: auth.currentUser.uid,
         fechaCreacion: new Date().toISOString()
       });

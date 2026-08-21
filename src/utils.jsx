@@ -62,6 +62,28 @@ export const CATEGORIAS_GASTO = [
 ];
 export const CATEGORIAS_INGRESO = ["Salario", "Ventas", "Trabajo", "Devolución", "Préstamo", "Otros"];
 
+// ── SANEO DE RESPUESTAS DE IA (Groq: escaneo de recibos + dictado por voz) ──
+// El JSON que devuelve el modelo no es de fiar por más que el prompt le pida
+// un formato exacto: un recibo/dictado manipulado, o el modelo alucinando,
+// puede mandar un monto no-numérico, una categoría inventada, o texto larguísimo.
+// Sin esto, esa basura se guarda tal cual en Firestore y rompe silenciosamente
+// sumas (NaN), filtros por categoría y fechas en el resto de la app.
+export function limpiarRespuestaIA(datos, tipoForzado) {
+  const tipo = tipoForzado || (datos?.tipo === "ingreso" ? "ingreso" : "gasto");
+  const categorias = tipo === "ingreso" ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO;
+  const montoNum = Number(datos?.monto);
+  const acortar = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
+  return {
+    tipo,
+    monto: Number.isFinite(montoNum) && montoNum > 0 ? Math.round(montoNum) : null,
+    categoria: categorias.includes(datos?.categoria) ? datos.categoria : null,
+    categoriaSugerida: categorias.includes(datos?.categoriaSugerida) ? datos.categoriaSugerida : "Otros",
+    descripcion: acortar(datos?.descripcion, 140),
+    comercio: acortar(datos?.comercio, 80),
+    fecha: typeof datos?.fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(datos.fecha) ? datos.fecha : null,
+  };
+}
+
 export const TIPOS_CUENTA = [
   { id: "efectivo", label: "Efectivo" },
   { id: "banco", label: "Cuenta bancaria" },

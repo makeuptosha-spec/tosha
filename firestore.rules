@@ -31,6 +31,16 @@ service cloud.firestore {
       return request.resource.data.uid == resource.data.uid;
     }
 
+    // Validación de tipos — solo al CREAR (no en update: un update parcial
+    // ya trae los campos viejos fusionados, y no vale la pena arriesgar
+    // bloquear una edición legítima por un dato viejo con forma rara).
+    // Frena que alguien escriba basura sin tipo directo contra la API de
+    // Firestore, saltándose el saneo que hace la app (formularios, y la
+    // limpieza de la respuesta de la IA en escaneo/dictado).
+    function esNumero(v) {
+      return v is int || v is float;
+    }
+
     // Solo el dueño gestiona quién tiene acceso — si cualquier usuario
     // autorizado pudiera escribir acá, podría autorizarse a sí mismo de
     // forma permanente o des-autorizar a otros.
@@ -42,12 +52,18 @@ service cloud.firestore {
     match /cuentas/{docId} {
       allow read, delete: if esPropio();
       allow update: if esPropio() && noCambiaUid();
-      allow create: if creaComoPropio();
+      allow create: if creaComoPropio()
+        && request.resource.data.nombre is string
+        && request.resource.data.tipo is string
+        && esNumero(request.resource.data.saldoInicial);
     }
     match /movimientos/{docId} {
       allow read, delete: if esPropio();
       allow update: if esPropio() && noCambiaUid();
-      allow create: if creaComoPropio();
+      allow create: if creaComoPropio()
+        && esNumero(request.resource.data.monto)
+        && request.resource.data.tipo is string
+        && request.resource.data.fecha is string;
     }
     match /categorias/{docId} {
       allow read, delete: if esPropio();
@@ -57,27 +73,37 @@ service cloud.firestore {
     match /facturasRecurrentes/{docId} {
       allow read, delete: if esPropio();
       allow update: if esPropio() && noCambiaUid();
-      allow create: if creaComoPropio();
+      allow create: if creaComoPropio()
+        && request.resource.data.nombre is string
+        && esNumero(request.resource.data.montoEstimado)
+        && esNumero(request.resource.data.diaVencimiento);
     }
     match /pagosFactura/{docId} {
       allow read, delete: if esPropio();
       allow update: if esPropio() && noCambiaUid();
-      allow create: if creaComoPropio();
+      allow create: if creaComoPropio()
+        && esNumero(request.resource.data.montoPagado);
     }
     match /presupuestos/{docId} {
       allow read, delete: if esPropio();
       allow update: if esPropio() && noCambiaUid();
-      allow create: if creaComoPropio();
+      allow create: if creaComoPropio()
+        && request.resource.data.categoria is string
+        && esNumero(request.resource.data.limiteMensual);
     }
     match /deudas/{docId} {
       allow read, delete: if esPropio();
       allow update: if esPropio() && noCambiaUid();
-      allow create: if creaComoPropio();
+      allow create: if creaComoPropio()
+        && request.resource.data.nombre is string
+        && esNumero(request.resource.data.montoPrincipal);
     }
     match /metas/{docId} {
       allow read, delete: if esPropio();
       allow update: if esPropio() && noCambiaUid();
-      allow create: if creaComoPropio();
+      allow create: if creaComoPropio()
+        && request.resource.data.nombre is string
+        && esNumero(request.resource.data.montoObjetivo);
     }
     match /borradores/{docId} {
       allow read, delete: if esPropio();

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { fmt, fmtNum, parseNum, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, iconoCuenta } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, iconoCuenta, limpiarRespuestaIA } from "../utils.jsx";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
@@ -85,9 +85,10 @@ export default function DictarMovimiento({ cuentas, onGuardar, onClose }) {
     if (!GROQ_KEY) { setEstado("error"); setErrorMsg("Falta VITE_GROQ_API_KEY."); return; }
     setEstado("procesando");
     try {
-      const datos = await interpretarConGroq(texto);
-      if (!datos.monto) throw new Error("No entendí el monto, intenta de nuevo siendo más específico");
-      setResultado(datos);
+      const crudo = await interpretarConGroq(texto);
+      const limpio = limpiarRespuestaIA(crudo);
+      if (!limpio.monto) throw new Error("No entendí el monto, intenta de nuevo siendo más específico");
+      setResultado({ tipo: limpio.tipo, monto: limpio.monto, categoria: limpio.categoriaSugerida, descripcion: limpio.descripcion });
       setEstado("confirmar");
     } catch (err) {
       setEstado("error"); setErrorMsg(err.message);
