@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, fmtFecha, Icon, ProgressBar, HOGAR_ID, iconoCuenta } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, fmtFecha, Icon, ProgressBar, HOGAR_ID, iconoCuenta, registrarImpuesto4x1000 } from "../utils.jsx";
 
 export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }) {
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -79,6 +79,10 @@ export default function MetasAhorro({ metas, setMetas, cuentas, setMovimientos }
       };
       const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(mv => [{ id: movRef.id, ...nuevoMovimiento }, ...mv]);
+      if (esAporte) {
+        const impuesto = await registrarImpuesto4x1000({ cuenta: cuentas.find(c => c.id === cuentaMov), monto, fecha, origen: `Aporte a meta: ${meta.nombre}`, uid: auth.currentUser.uid });
+        if (impuesto) setMovimientos(mv => [impuesto, ...mv]);
+      }
 
       const nuevoMontoActual = Math.max(0, Number(meta.montoActual) + (esAporte ? monto : -monto));
       await updateDoc(doc(db, "metas", meta.id), { montoActual: nuevoMontoActual });

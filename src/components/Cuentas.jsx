@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta, aplica4x1000, registrarImpuesto4x1000 } from "../utils.jsx";
 
 export const calcularSaldo = (cuenta, movimientos) => {
   let saldo = Number(cuenta.saldoInicial) || 0;
@@ -27,7 +27,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   const [guardandoAjuste, setGuardandoAjuste] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", cuotaMensual: "" };
+  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", cuotaMensual: "", exento4x1000: false };
   const [form, setForm] = useState(formBase);
 
   const transferBase = { cuentaId: "", cuentaDestinoId: "", monto: "", descripcion: "" };
@@ -43,6 +43,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   const balanceTotal = cuentasConSaldo.reduce((s, c) => s + c.saldo, 0);
 
   const esTarjeta = form.tipo === "tarjeta_credito";
+  const esCuentaBancaria = form.tipo === "banco" || form.tipo === "ahorros";
 
   const guardar = async () => {
     if (!form.nombre || form.saldoInicial === "") return showToast(esTarjeta ? "⚠️ Completa nombre y deuda actual" : "⚠️ Completa nombre y saldo inicial", "warn");
@@ -52,6 +53,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       saldoInicial: esTarjeta ? -Math.abs(Number(form.saldoInicial)) : Number(form.saldoInicial),
       cupoTotal: esTarjeta ? Number(form.cupoTotal) : null,
       cuotaMensual: esTarjeta ? Number(form.cuotaMensual || 0) : null,
+      exento4x1000: esCuentaBancaria ? !!form.exento4x1000 : false,
       activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
     try {
@@ -75,6 +77,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       saldoInicial: c.tipo === "tarjeta_credito" ? String(Math.abs(c.saldoInicial)) : String(c.saldoInicial),
       cupoTotal: c.cupoTotal != null ? String(c.cupoTotal) : "",
       cuotaMensual: c.cuotaMensual != null ? String(c.cuotaMensual) : "",
+      exento4x1000: !!c.exento4x1000,
     });
     setEditandoId(c.id); setMostrarForm(true);
   };
@@ -105,7 +108,12 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       };
       const ref = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(m => [{ id: ref.id, ...nuevoMovimiento }, ...m]);
-      showToast("✅ Transferencia realizada");
+
+      const cuentaDestino = cuentas.find(c => c.id === cuentaDestinoId);
+      const impuesto = await registrarImpuesto4x1000({ cuenta: cuentaOrigen, monto, fecha: nuevoMovimiento.fecha, origen: `Transferencia a ${cuentaDestino?.nombre || "otra cuenta"}`, uid: auth.currentUser.uid });
+      if (impuesto) setMovimientos(m => [impuesto, ...m]);
+
+      showToast(impuesto ? `✅ Transferencia realizada (+${fmt(impuesto.monto)} de 4x1000)` : "✅ Transferencia realizada");
       setTransferForm(transferBase); setMostrarTransferencia(false);
     } catch { showToast("❌ Error en la transferencia", "danger"); }
     finally { setEnviandoTransfer(false); }
@@ -234,6 +242,17 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
               </div>
             </div>
           )}
+          {esCuentaBancaria && (
+            <div onClick={() => setForm(f => ({ ...f, exento4x1000: !f.exento4x1000 }))} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "var(--bg)", padding: "12px 14px", borderRadius: 14, border: "1px solid var(--border)", cursor: "pointer" }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0 }}>Exenta de 4x1000</p>
+                <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>Marca esto solo en la cuenta que la ley exime (normalmente una sola). Las demás cuentas bancarias pagan 0.4% en cada gasto/transferencia.</p>
+              </div>
+              <div style={{ flexShrink: 0, width: 44, height: 26, borderRadius: 100, padding: 3, background: form.exento4x1000 ? "linear-gradient(135deg, var(--primary-deep), var(--primary))" : "#A8BDB4", transition: "background 0.2s" }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "var(--shadow)", transform: form.exento4x1000 ? "translateX(18px)" : "translateX(0)", transition: "transform 0.2s" }} />
+              </div>
+            </div>
+          )}
           <button onClick={guardar} style={{ background: "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontWeight: 700, fontSize: 14 }}>
             {editandoId ? "Actualizar" : "Guardar cuenta"}
           </button>
@@ -296,7 +315,10 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nombre}</p>
-                  <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{TIPOS_CUENTA.find(t => t.id === c.tipo)?.label}</p>
+                  <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 6 }}>
+                    {TIPOS_CUENTA.find(t => t.id === c.tipo)?.label}
+                    {aplica4x1000(c) && <span style={{ fontSize: 10, background: "var(--warn-bg)", color: "var(--warn)", padding: "1px 7px", borderRadius: 20, fontWeight: 700, flexShrink: 0 }}>4x1000</span>}
+                  </p>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>

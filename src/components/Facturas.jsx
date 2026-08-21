@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual, iconoCuenta } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual, iconoCuenta, registrarImpuesto4x1000, useTema, colorTema } from "../utils.jsx";
 import Deudas from "./Deudas.jsx";
 
 export const estadoFactura = (factura, pagosFactura) => {
@@ -17,6 +18,41 @@ const ESTILO_ESTADO = {
   pagada:   { bg: "var(--success-bg)", color: "var(--success)", label: "✅ Pagada" },
   vencida:  { bg: "var(--danger-bg)", color: "var(--danger)",  label: "🔴 Vencida" },
   pendiente:{ bg: "var(--accent-pale)", color: "var(--accent)", label: "⏳ Pendiente" },
+};
+
+const fmtMesCorto = (mesStr) => {
+  const [y, m] = mesStr.split("-");
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("es-CO", { month: "short" });
+};
+
+const TooltipHistorico = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: "var(--ink)", color: "#fff", padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+      <div style={{ opacity: 0.75, fontWeight: 500, marginBottom: 4, textTransform: "capitalize" }}>{label}</div>
+      {fmt(payload[0].value)}
+    </div>
+  );
+};
+
+const GraficaHistorico = ({ data }) => {
+  const [tema] = useTema();
+  const c = colorTema(tema);
+  return (
+    <div style={{ width: "100%", height: 160, marginTop: 14 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 6, right: 4, left: 0, bottom: 0 }}>
+          <CartesianGrid vertical={false} stroke={c.grid} />
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: c.texto, textTransform: "capitalize" }} axisLine={{ stroke: c.grid }} tickLine={false} />
+          <YAxis width={0} tick={false} axisLine={false} tickLine={false} />
+          <Tooltip content={<TooltipHistorico />} cursor={{ fill: "var(--primary-pale)" }} />
+          <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+            {data.map((d, i) => <Cell key={d.mes} fill={i === data.length - 1 ? "var(--accent)" : "var(--primary-soft)"} />)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 };
 
 export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, pagosFactura, setPagosFactura, setMovimientos, cuentas, deudas, setDeudas }) {
@@ -46,6 +82,24 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
 
   const totalMes = facturasConEstado.reduce((s, f) => s + Number(f.montoEstimado), 0);
   const totalPendiente = facturasConEstado.filter(f => f.estado !== "pagada").reduce((s, f) => s + Number(f.montoEstimado), 0);
+
+  const historico = useMemo(() => {
+    const meses = [];
+    const base = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return meses.map(mes => ({
+      mes, label: fmtMesCorto(mes),
+      total: pagosFactura.filter(p => p.pagado && p.mes === mes).reduce((s, p) => s + Number(p.montoPagado ?? 0), 0)
+    }));
+  }, [pagosFactura]);
+
+  const totalMesActual = historico[historico.length - 1]?.total || 0;
+  const totalMesAnterior = historico[historico.length - 2]?.total || 0;
+  const diferenciaMes = totalMesActual - totalMesAnterior;
+  const pctCambioMes = totalMesAnterior > 0 ? Math.round((diferenciaMes / totalMesAnterior) * 100) : null;
 
   const guardar = async () => {
     if (!form.nombre || !form.montoEstimado || !form.categoria || !form.cuentaId || !form.diaVencimiento) return showToast("⚠️ Completa todos los campos", "warn");
@@ -101,6 +155,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
       const fecha = new Date().toISOString();
       let movimientoId = null;
 
+      let impuesto = null;
       if (!yaPagado) {
         const nuevoMovimiento = {
           tipo: "gasto", monto: Number(montoPago), categoria: pagando.categoria, cuentaId: cuentaPago,
@@ -109,13 +164,20 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
         const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
         setMovimientos(m => [{ id: movRef.id, ...nuevoMovimiento }, ...m]);
         movimientoId = movRef.id;
+        impuesto = await registrarImpuesto4x1000({ cuenta: cuentas.find(c => c.id === cuentaPago), monto: montoPago, fecha, origen: pagando.nombre, uid: auth.currentUser.uid });
+        if (impuesto) setMovimientos(m => [impuesto, ...m]);
       }
 
       const nuevoPago = { facturaRecurrenteId: pagando.id, mes: mesActual(), pagado: true, fechaPago: fecha, montoPagado: Number(montoPago), movimientoId, hogarId: HOGAR_ID, uid: auth.currentUser.uid };
       const pagoRef = await addDoc(collection(db, "pagosFactura"), nuevoPago);
       setPagosFactura(p => [{ id: pagoRef.id, ...nuevoPago }, ...p]);
 
-      showToast(`✅ ${pagando.nombre} marcada como pagada`);
+      if (Number(montoPago) !== Number(pagando.montoEstimado)) {
+        await updateDoc(doc(db, "facturasRecurrentes", pagando.id), { montoEstimado: Number(montoPago) });
+        setFacturasRecurrentes(f => f.map(x => x.id === pagando.id ? { ...x, montoEstimado: Number(montoPago) } : x));
+      }
+
+      showToast(impuesto ? `✅ ${pagando.nombre} marcada como pagada (+${fmt(impuesto.monto)} de 4x1000)` : `✅ ${pagando.nombre} marcada como pagada`);
       cerrarPago();
     } catch { showToast("❌ Error al registrar el pago", "danger"); }
     finally { setGuardandoPago(false); }
@@ -157,6 +219,22 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
           <p style={{ fontSize: 20, fontWeight: 800, color: "var(--accent)", marginTop: 4 }}>{fmt(totalPendiente)}</p>
         </div>
       </div>
+
+      {/* HISTÓRICO PAGADO POR MES */}
+      {historico.some(h => h.total > 0) && (
+        <div style={{ background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+            <p style={{ fontWeight: 700, fontSize: 14, color: "var(--dark)" }}>📊 Pagado en facturas fijas por mes</p>
+            {pctCambioMes !== null && diferenciaMes !== 0 && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: diferenciaMes > 0 ? "var(--danger)" : "var(--success)", background: diferenciaMes > 0 ? "var(--danger-bg)" : "var(--success-bg)", padding: "3px 10px", borderRadius: 20 }}>
+                {diferenciaMes > 0 ? "▲" : "▼"} {Math.abs(pctCambioMes)}% vs mes anterior
+              </span>
+            )}
+          </div>
+          <p style={{ fontSize: 11, color: "var(--mid)", marginTop: 2 }}>Este mes: <strong style={{ color: "var(--dark)" }}>{fmt(totalMesActual)}</strong> · Mes anterior: <strong style={{ color: "var(--dark)" }}>{fmt(totalMesAnterior)}</strong></p>
+          <GraficaHistorico data={historico} />
+        </div>
+      )}
 
       <button onClick={() => { setMostrarForm(!mostrarForm); setEditandoId(null); setForm(formBase); }}
         style={{ background: mostrarForm ? "var(--mid)" : "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>

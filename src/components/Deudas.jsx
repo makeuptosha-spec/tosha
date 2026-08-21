@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, ProgressBar, HOGAR_ID, iconoCuenta } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, ProgressBar, HOGAR_ID, iconoCuenta, registrarImpuesto4x1000 } from "../utils.jsx";
 
 export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -87,6 +87,10 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
       };
       const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(m => [{ id: movRef.id, ...nuevoMovimiento }, ...m]);
+      if (esDebo) {
+        const impuesto = await registrarImpuesto4x1000({ cuenta: cuentas.find(c => c.id === cuentaAbono), monto: abono, fecha, origen: `Abono: ${abonando.nombre}`, uid: auth.currentUser.uid });
+        if (impuesto) setMovimientos(m => [impuesto, ...m]);
+      }
 
       const nuevoSaldo = Math.max(0, Number(abonando.saldoRestante) - abono);
       const nuevoHistorial = [...(abonando.historialPagos || []), { fecha, monto: abono, movimientoId: movRef.id }];
