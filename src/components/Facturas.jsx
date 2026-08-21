@@ -262,11 +262,11 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
           </div>
           <div>
             <label style={{ fontSize: 11, color: "var(--mid)" }}>Ref. / código de factura (opcional)</label>
-            <input value={form.codigoReferencia} onChange={e => setForm({ ...form, codigoReferencia: e.target.value })} placeholder="Ej: número de cuenta/contrato pa pagar" />
+            <textarea rows={2} value={form.codigoReferencia} onChange={e => setForm({ ...form, codigoReferencia: e.target.value })} placeholder="Ej: número de cuenta/contrato pa pagar" style={{ resize: "vertical", fontFamily: "monospace", fontSize: 12.5, lineHeight: 1.4 }} />
           </div>
           <div>
             <label style={{ fontSize: 11, color: "var(--mid)" }}>Link de pago (opcional)</label>
-            <textarea rows={2} value={form.urlPago} onChange={e => setForm({ ...form, urlPago: e.target.value })} placeholder="https://... — el link que te lleva directo a pagar esta factura" style={{ resize: "vertical", fontFamily: "monospace", fontSize: 12.5, lineHeight: 1.4 }} />
+            <input value={form.urlPago} onChange={e => setForm({ ...form, urlPago: e.target.value })} placeholder="https://..." />
           </div>
           <div className="form-grid">
             <div>
@@ -387,9 +387,14 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
                     <span style={{ fontSize: 10, background: est.bg, color: est.color, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>{est.label}</span>
                   </div>
                   <p style={{ fontSize: 11, color: "var(--mid)", margin: "3px 0 0" }}>{f.categoria} · Vence el {f.diaVencimiento} de cada mes</p>
-                  {f.codigoReferencia && (
-                    <div onClick={() => copiarCodigo(f.codigoReferencia)} style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6, cursor: "pointer" }}>
-                      <span style={{ fontSize: 10, color: "var(--primary-deep)", background: "var(--primary-pale)", padding: "2px 8px", borderRadius: 20, fontWeight: 700, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🔖 {f.codigoReferencia}</span>
+                  {(f.codigoReferencia || f.urlPago) && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                      {f.codigoReferencia && (
+                        <span onClick={() => copiarCodigo(f.codigoReferencia)} title="Copiar código" style={{ fontSize: 10, color: "var(--primary-deep)", background: "var(--primary-pale)", padding: "2px 8px", borderRadius: 20, fontWeight: 700, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>🔖 {f.codigoReferencia}</span>
+                      )}
+                      {f.urlPago && (
+                        <span onClick={() => abrirLinkPago(f.urlPago)} title="Abrir link de pago" style={{ fontSize: 10, color: "var(--accent)", background: "var(--accent-pale)", padding: "2px 8px", borderRadius: 20, fontWeight: 700, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>🔗 {f.urlPago.replace(/^https?:\/\//i, "")}</span>
+                      )}
                     </div>
                   )}
                 </div>
