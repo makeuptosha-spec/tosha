@@ -43,7 +43,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   const balanceTotal = cuentasConSaldo.reduce((s, c) => s + c.saldo, 0);
 
   const esTarjeta = form.tipo === "tarjeta_credito";
-  const esCuentaBancaria = form.tipo === "banco" || form.tipo === "ahorros";
+  const esCuentaGravable = form.tipo === "banco" || form.tipo === "ahorros" || esTarjeta;
 
   const guardar = async () => {
     if (!form.nombre || form.saldoInicial === "") return showToast(esTarjeta ? "⚠️ Completa nombre y deuda actual" : "⚠️ Completa nombre y saldo inicial", "warn");
@@ -53,7 +53,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       saldoInicial: esTarjeta ? -Math.abs(Number(form.saldoInicial)) : Number(form.saldoInicial),
       cupoTotal: esTarjeta ? Number(form.cupoTotal) : null,
       cuotaMensual: esTarjeta ? Number(form.cuotaMensual || 0) : null,
-      exento4x1000: esCuentaBancaria ? !!form.exento4x1000 : false,
+      exento4x1000: esCuentaGravable ? !!form.exento4x1000 : false,
       activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
     try {
@@ -242,11 +242,11 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
               </div>
             </div>
           )}
-          {esCuentaBancaria && (
+          {esCuentaGravable && (
             <div onClick={() => setForm(f => ({ ...f, exento4x1000: !f.exento4x1000 }))} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "var(--bg)", padding: "12px 14px", borderRadius: 14, border: "1px solid var(--border)", cursor: "pointer" }}>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0 }}>Exenta de 4x1000</p>
-                <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>Marca esto solo en la cuenta que la ley exime (normalmente una sola). Las demás cuentas bancarias pagan 0.4% en cada gasto/transferencia.</p>
+                <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>Marca esto solo en la cuenta que la ley exime (normalmente una sola). Las demás cuentas (banco, ahorros, tarjeta de crédito) pagan 0.4% en cada gasto/transferencia/pago.</p>
               </div>
               <div style={{ flexShrink: 0, width: 44, height: 26, borderRadius: 100, padding: 3, background: form.exento4x1000 ? "linear-gradient(135deg, var(--primary-deep), var(--primary))" : "#A8BDB4", transition: "background 0.2s" }}>
                 <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "var(--shadow)", transform: form.exento4x1000 ? "translateX(18px)" : "translateX(0)", transition: "transform 0.2s" }} />

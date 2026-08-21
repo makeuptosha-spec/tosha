@@ -94,14 +94,14 @@ export const iconoCuenta = (cuenta) => {
 };
 
 // ── GMF (4x1000) ──
-// Colombia grava con 0.4% cada retiro/débito de una cuenta bancaria. Por ley
-// se puede marcar UNA cuenta como exenta (normalmente la de nómina); el resto
-// de cuentas tipo "banco"/"ahorros" sí paga. Efectivo y tarjeta de crédito
-// nunca aplican (no son retiros de cuenta bancaria).
+// 0.4% en cada gasto/transferencia/pago desde una cuenta banco, ahorros o
+// tarjeta de crédito. Por cuenta se puede marcar "exenta" (ej: la que la ley
+// exime, normalmente una sola). Efectivo nunca aplica.
 export const TASA_4X1000 = 0.004;
+export const TIPOS_GRAVADOS_4X1000 = ["banco", "ahorros", "tarjeta_credito"];
 
 export const aplica4x1000 = (cuenta) =>
-  !!cuenta && (cuenta.tipo === "banco" || cuenta.tipo === "ahorros") && !cuenta.exento4x1000;
+  !!cuenta && TIPOS_GRAVADOS_4X1000.includes(cuenta.tipo) && !cuenta.exento4x1000;
 
 // Crea (si aplica) un movimiento de gasto aparte por el 4x1000 de un débito.
 // Devuelve el doc creado (con id) o null si la cuenta no está gravada.
