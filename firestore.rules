@@ -18,56 +18,75 @@ service cloud.firestore {
 
     // Perfiles privados: cada documento le pertenece al usuario que lo creó
     // (campo `uid`). Solo su dueño puede leerlo/editarlo/borrarlo, y solo
-    // puede crear documentos a su propio nombre.
+    // puede crear documentos a su propio nombre. En un update, el `uid` no
+    // se puede reasignar a otra persona (evita que un usuario autorizado
+    // "traspase" o falsifique documentos a nombre de otro uid).
     function esPropio() {
       return autorizado() && resource.data.uid == request.auth.uid;
     }
     function creaComoPropio() {
       return autorizado() && request.resource.data.uid == request.auth.uid;
     }
+    function noCambiaUid() {
+      return request.resource.data.uid == resource.data.uid;
+    }
 
+    // Solo el dueño gestiona quién tiene acceso — si cualquier usuario
+    // autorizado pudiera escribir acá, podría autorizarse a sí mismo de
+    // forma permanente o des-autorizar a otros.
     match /usuariosPermitidos/{email} {
-      allow read, write: if autorizado();
+      allow read: if autorizado();
+      allow write: if esDueno();
     }
 
     match /cuentas/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
     match /movimientos/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
     match /categorias/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
     match /facturasRecurrentes/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
     match /pagosFactura/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
     match /presupuestos/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
     match /deudas/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
     match /metas/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
     match /borradores/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
     match /notas/{docId} {
-      allow read, update, delete: if esPropio();
+      allow read, delete: if esPropio();
+      allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
     }
 

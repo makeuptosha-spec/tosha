@@ -39,6 +39,11 @@ export const useTema = () => {
 // ── IDENTIDAD DEL HOGAR (campo legado, ya no se usa pa aislar datos) ──
 export const HOGAR_ID = "hogar-principal";
 
+// Debe coincidir con esDueno() en firestore.rules — es quien administra
+// la lista de usuariosPermitidos (las reglas ya no dejan escribir ahí a
+// nadie más, así que la UI debe reflejar lo mismo).
+export const EMAIL_DUENO = "makeuptosha@gmail.com";
+
 // ── PERFILES PRIVADOS POR USUARIO ──
 // Trae solo los docs del usuario actual. La consulta va filtrada por `uid`
 // porque las reglas de Firestore exigen que el propio query esté acotado
