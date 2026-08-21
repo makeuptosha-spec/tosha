@@ -67,7 +67,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
   const [guardandoPago, setGuardandoPago] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const formBase = { nombre: "", montoEstimado: "", categoria: "", cuentaId: "", diaVencimiento: "1", codigoReferencia: "" };
+  const formBase = { nombre: "", montoEstimado: "", categoria: "", cuentaId: "", diaVencimiento: "1", codigoReferencia: "", urlPago: "" };
   const [form, setForm] = useState(formBase);
 
   const showToast = (msg, tipo = "ok") => { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); };
@@ -106,6 +106,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
     const datos = {
       nombre: form.nombre, montoEstimado: Number(form.montoEstimado), categoria: form.categoria,
       cuentaId: form.cuentaId, diaVencimiento: Number(form.diaVencimiento), codigoReferencia: form.codigoReferencia || null,
+      urlPago: form.urlPago || null,
       activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
     try {
@@ -124,13 +125,18 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
   };
 
   const abrirEdicion = (f) => {
-    setForm({ nombre: f.nombre, montoEstimado: String(f.montoEstimado), categoria: f.categoria, cuentaId: f.cuentaId, diaVencimiento: String(f.diaVencimiento), codigoReferencia: f.codigoReferencia || "" });
+    setForm({ nombre: f.nombre, montoEstimado: String(f.montoEstimado), categoria: f.categoria, cuentaId: f.cuentaId, diaVencimiento: String(f.diaVencimiento), codigoReferencia: f.codigoReferencia || "", urlPago: f.urlPago || "" });
     setEditandoId(f.id); setMostrarForm(true);
   };
 
   const copiarCodigo = async (codigo) => {
     try { await navigator.clipboard.writeText(codigo); showToast("📋 Código copiado"); }
     catch { showToast("❌ No se pudo copiar", "danger"); }
+  };
+
+  const abrirLinkPago = (url) => {
+    const conProtocolo = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    window.open(conProtocolo, "_blank", "noopener,noreferrer");
   };
 
   const confirmarEliminar = async () => {
@@ -258,6 +264,10 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
             <label style={{ fontSize: 11, color: "var(--mid)" }}>Ref. / código de factura (opcional)</label>
             <input value={form.codigoReferencia} onChange={e => setForm({ ...form, codigoReferencia: e.target.value })} placeholder="Ej: número de cuenta/contrato pa pagar" />
           </div>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--mid)" }}>Link de pago (opcional)</label>
+            <textarea rows={2} value={form.urlPago} onChange={e => setForm({ ...form, urlPago: e.target.value })} placeholder="https://... — el link que te lleva directo a pagar esta factura" style={{ resize: "vertical", fontFamily: "monospace", fontSize: 12.5, lineHeight: 1.4 }} />
+          </div>
           <div className="form-grid">
             <div>
               <label style={{ fontSize: 11, color: "var(--mid)" }}>Monto estimado</label>
@@ -304,6 +314,11 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 700, color: "var(--primary-deep)", flexShrink: 0 }}>📋 Copiar</span>
                 </div>
+              )}
+              {pagando.urlPago && (
+                <button onClick={() => abrirLinkPago(pagando.urlPago)} style={{ background: "var(--accent-pale)", color: "var(--accent)", border: "1px solid var(--accent-soft)", borderRadius: 12, padding: "11px", fontSize: 13, fontWeight: 700 }}>
+                  💳 Ir a pagar
+                </button>
               )}
               <div>
                 <label style={{ fontSize: 11, color: "var(--mid)" }}>Monto pagado</label>
@@ -380,13 +395,18 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
                 </div>
                 <p style={{ fontSize: 16, fontWeight: 800, color: "var(--dark)", margin: 0, flexShrink: 0 }}>{fmt(f.montoEstimado)}</p>
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 12, flexWrap: "wrap" }}>
+                {f.urlPago && (
+                  <button onClick={() => abrirLinkPago(f.urlPago)} style={{ flex: "1 1 90px", background: "var(--accent-pale)", color: "var(--accent)", border: "1px solid var(--accent-soft)", borderRadius: 10, padding: "9px", fontSize: 12, fontWeight: 700 }}>
+                    💳 Pagar
+                  </button>
+                )}
                 {f.estado !== "pagada" && (
-                  <button onClick={() => abrirPago(f)} style={{ flex: 1, background: "linear-gradient(135deg, var(--success), #43A047)", color: "#fff", border: "none", borderRadius: 10, padding: "9px", fontSize: 12, fontWeight: 700 }}>
+                  <button onClick={() => abrirPago(f)} style={{ flex: "1 1 90px", background: "linear-gradient(135deg, var(--success), #43A047)", color: "#fff", border: "none", borderRadius: 10, padding: "9px", fontSize: 12, fontWeight: 700 }}>
                     ✅ Marcar pagada
                   </button>
                 )}
-                <button onClick={() => abrirEdicion(f)} style={{ flex: f.estado === "pagada" ? 1 : "0 0 auto", background: "var(--bg)", color: "var(--primary-deep)", border: "1px solid var(--primary-soft)", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>✏️ Editar</button>
+                <button onClick={() => abrirEdicion(f)} style={{ flex: "0 0 auto", background: "var(--bg)", color: "var(--primary-deep)", border: "1px solid var(--primary-soft)", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>✏️ Editar</button>
                 <button onClick={() => setFacturaAEliminar(f)} style={{ flex: "0 0 auto", background: "var(--danger-bg)", color: "var(--danger)", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 600 }}>🗑️</button>
               </div>
             </div>
