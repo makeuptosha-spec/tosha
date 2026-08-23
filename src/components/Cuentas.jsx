@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta, aplica4x1000, registrarImpuesto4x1000 } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta, aplica4x1000, calcular4x1000 } from "../utils.jsx";
 
 export const calcularSaldo = (cuenta, movimientos) => {
   let saldo = Number(cuenta.saldoInicial) || 0;
@@ -101,19 +101,17 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
     if (cuentaId === cuentaDestinoId) return showToast("⚠️ Elige cuentas distintas", "warn");
     setEnviandoTransfer(true);
     try {
+      const gmf = calcular4x1000(cuentaOrigen, monto);
       const nuevoMovimiento = {
         tipo: "transferencia", monto: Number(monto), cuentaId, cuentaDestinoId,
         categoria: "Transferencia", descripcion: transferForm.descripcion || "Transferencia entre cuentas",
         fecha: new Date().toISOString(), hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: new Date().toISOString()
       };
+      if (gmf) nuevoMovimiento.gmf4x1000 = gmf;
       const ref = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(m => [{ id: ref.id, ...nuevoMovimiento }, ...m]);
 
-      const cuentaDestino = cuentas.find(c => c.id === cuentaDestinoId);
-      const impuesto = await registrarImpuesto4x1000({ cuenta: cuentaOrigen, monto, fecha: nuevoMovimiento.fecha, origen: `Transferencia a ${cuentaDestino?.nombre || "otra cuenta"}`, uid: auth.currentUser.uid });
-      if (impuesto) setMovimientos(m => [impuesto, ...m]);
-
-      showToast(impuesto ? `✅ Transferencia realizada (+${fmt(impuesto.monto)} de 4x1000)` : "✅ Transferencia realizada");
+      showToast(gmf ? `✅ Transferencia realizada (+${fmt(gmf)} de 4x1000)` : "✅ Transferencia realizada");
       setTransferForm(transferBase); setMostrarTransferencia(false);
     } catch { showToast("❌ Error en la transferencia", "danger"); }
     finally { setEnviandoTransfer(false); }

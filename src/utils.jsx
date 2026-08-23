@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "./firebase.js";
-import { collection, getDocs, query, where, addDoc } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 // ── TEMA (claro/oscuro) ──
 const TEMA_KEY = "tosha-tema";
@@ -130,19 +130,12 @@ export const TIPOS_GRAVADOS_4X1000 = ["banco", "ahorros", "tarjeta_credito"];
 export const aplica4x1000 = (cuenta) =>
   !!cuenta && TIPOS_GRAVADOS_4X1000.includes(cuenta.tipo) && !cuenta.exento4x1000;
 
-// Crea (si aplica) un movimiento de gasto aparte por el 4x1000 de un débito.
-// Devuelve el doc creado (con id) o null si la cuenta no está gravada.
-export async function registrarImpuesto4x1000({ cuenta, monto, fecha, origen, uid }) {
-  if (!aplica4x1000(cuenta)) return null;
-  const valor = Math.round(Number(monto) * TASA_4X1000);
-  if (!valor) return null;
-  const datos = {
-    tipo: "gasto", monto: valor, categoria: "Impuestos", cuentaId: cuenta.id,
-    descripcion: `4x1000${origen ? " · " + origen : ""}`,
-    fecha, hogarId: HOGAR_ID, uid, fechaCreacion: new Date().toISOString(), esImpuesto4x1000: true,
-  };
-  const ref = await addDoc(collection(db, "movimientos"), datos);
-  return { id: ref.id, ...datos };
+// Calcula el 4x1000 de un débito, si la cuenta está gravada. Devuelve el
+// valor (entero, redondeado) o 0. Se guarda como campo del propio
+// movimiento (gmf4x1000), no como un movimiento aparte.
+export function calcular4x1000(cuenta, monto) {
+  if (!aplica4x1000(cuenta)) return 0;
+  return Math.round(Number(monto) * TASA_4X1000);
 }
 
 // ── UTILIDADES DE FORMATO Y FECHAS ──

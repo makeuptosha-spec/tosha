@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, ProgressBar, HOGAR_ID, iconoCuenta, registrarImpuesto4x1000 } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, ProgressBar, HOGAR_ID, iconoCuenta, calcular4x1000 } from "../utils.jsx";
 
 export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -80,17 +80,15 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
       const abono = Math.min(Number(montoAbono), Number(abonando.saldoRestante));
       const esDebo = abonando.tipo === "debo";
 
+      const gmf = esDebo ? calcular4x1000(cuentas.find(c => c.id === cuentaAbono), abono) : 0;
       const nuevoMovimiento = {
         tipo: esDebo ? "gasto" : "ingreso", monto: abono, categoria: esDebo ? "Deudas" : "Préstamo",
         cuentaId: cuentaAbono, descripcion: `Abono: ${abonando.nombre}`, fecha, deudaId: abonando.id,
         hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
       };
+      if (gmf) nuevoMovimiento.gmf4x1000 = gmf;
       const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
       setMovimientos(m => [{ id: movRef.id, ...nuevoMovimiento }, ...m]);
-      if (esDebo) {
-        const impuesto = await registrarImpuesto4x1000({ cuenta: cuentas.find(c => c.id === cuentaAbono), monto: abono, fecha, origen: `Abono: ${abonando.nombre}`, uid: auth.currentUser.uid });
-        if (impuesto) setMovimientos(m => [impuesto, ...m]);
-      }
 
       const nuevoSaldo = Math.max(0, Number(abonando.saldoRestante) - abono);
       const nuevoHistorial = [...(abonando.historialPagos || []), { fecha, monto: abono, movimientoId: movRef.id }];

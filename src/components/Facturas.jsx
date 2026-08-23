@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual, iconoCuenta, registrarImpuesto4x1000, useTema, colorTema } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual, iconoCuenta, calcular4x1000, useTema, colorTema } from "../utils.jsx";
 import Deudas from "./Deudas.jsx";
 
 export const estadoFactura = (factura, pagosFactura) => {
@@ -169,17 +169,17 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
       const fecha = new Date().toISOString();
       let movimientoId = null;
 
-      let impuesto = null;
+      let gmf = 0;
       if (!yaPagado) {
+        gmf = calcular4x1000(cuentas.find(c => c.id === cuentaPago), montoPago);
         const nuevoMovimiento = {
           tipo: "gasto", monto: Number(montoPago), categoria: pagando.categoria, cuentaId: cuentaPago,
           descripcion: pagando.nombre, fecha, facturaRecurrenteId: pagando.id, hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
         };
+        if (gmf) nuevoMovimiento.gmf4x1000 = gmf;
         const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
         setMovimientos(m => [{ id: movRef.id, ...nuevoMovimiento }, ...m]);
         movimientoId = movRef.id;
-        impuesto = await registrarImpuesto4x1000({ cuenta: cuentas.find(c => c.id === cuentaPago), monto: montoPago, fecha, origen: pagando.nombre, uid: auth.currentUser.uid });
-        if (impuesto) setMovimientos(m => [impuesto, ...m]);
       }
 
       const nuevoPago = { facturaRecurrenteId: pagando.id, mes: mesActual(), pagado: true, fechaPago: fecha, montoPagado: Number(montoPago), movimientoId, hogarId: HOGAR_ID, uid: auth.currentUser.uid };
@@ -191,7 +191,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
         setFacturasRecurrentes(f => f.map(x => x.id === pagando.id ? { ...x, montoEstimado: Number(montoPago) } : x));
       }
 
-      showToast(impuesto ? `✅ ${pagando.nombre} marcada como pagada (+${fmt(impuesto.monto)} de 4x1000)` : `✅ ${pagando.nombre} marcada como pagada`);
+      showToast(gmf ? `✅ ${pagando.nombre} marcada como pagada (+${fmt(gmf)} de 4x1000)` : `✅ ${pagando.nombre} marcada como pagada`);
       cerrarPago();
     } catch { showToast("❌ Error al registrar el pago", "danger"); }
     finally { setGuardandoPago(false); }
