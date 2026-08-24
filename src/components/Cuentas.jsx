@@ -77,12 +77,11 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
 
   const guardar = async () => {
     if (guardandoCuenta) return;
-    if (!form.nombre || form.saldoInicial === "") return showToast(esTarjeta ? "⚠️ Completa nombre y deuda actual" : "⚠️ Completa nombre y saldo inicial", "warn");
+    if (!form.nombre || (!editandoId && form.saldoInicial === "")) return showToast(esTarjeta ? "⚠️ Completa nombre y deuda actual" : "⚠️ Completa nombre y saldo inicial", "warn");
     if (esTarjeta && form.cupoTotal === "") return showToast("⚠️ Completa el cupo total", "warn");
     setGuardandoCuenta(true);
     const datos = {
       nombre: form.nombre, tipo: form.tipo,
-      saldoInicial: esTarjeta ? -Math.abs(Number(form.saldoInicial)) : Number(form.saldoInicial),
       cupoTotal: esTarjeta ? Number(form.cupoTotal) : null,
       fechaCorte: esTarjeta && form.fechaCorte !== "" ? Number(form.fechaCorte) : null,
       fechaPago: esTarjeta && form.fechaPago !== "" ? Number(form.fechaPago) : null,
@@ -90,10 +89,18 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       exento4x1000: esCuentaGravable ? !!form.exento4x1000 : false,
       activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
+    // saldoInicial es la base del cálculo de saldo (base + movimientos ya
+    // registrados). Solo se fija al crear la cuenta — si se pudiera tocar
+    // de nuevo en una edición con movimientos ya encima, el saldo quedaría
+    // mal sumado. Para corregir el saldo real se usa "⚖️ Ajustar", que
+    // crea un movimiento de ajuste en vez de pisar la base.
+    if (!editandoId) {
+      datos.saldoInicial = esTarjeta ? -Math.abs(Number(form.saldoInicial)) : Number(form.saldoInicial);
+    }
     try {
       if (editandoId) {
         await updateDoc(doc(db, "cuentas", editandoId), datos);
-        setCuentas(c => c.map(x => x.id === editandoId ? { id: editandoId, ...datos } : x));
+        setCuentas(c => c.map(x => x.id === editandoId ? { ...x, ...datos } : x));
         showToast("✅ Cuenta actualizada");
       } else {
         datos.fechaCreacion = new Date().toISOString();
@@ -262,7 +269,13 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
             </div>
             <div>
               <label style={{ fontSize: 11, color: "var(--mid)" }}>{esTarjeta ? "Deuda actual" : "Saldo inicial"}</label>
-              <input type="text" value={form.saldoInicial ? fmtNum(form.saldoInicial) : ""} onChange={e => setForm({ ...form, saldoInicial: parseNum(e.target.value) })} />
+              {editandoId ? (
+                <p style={{ fontSize: 13, color: "var(--mid)", background: "var(--bg)", borderRadius: 10, padding: "10px 12px", margin: 0 }}>
+                  Usá "⚖️ Ajustar" en la lista para corregirlo
+                </p>
+              ) : (
+                <input type="text" value={form.saldoInicial ? fmtNum(form.saldoInicial) : ""} onChange={e => setForm({ ...form, saldoInicial: parseNum(e.target.value) })} />
+              )}
             </div>
           </div>
           {esTarjeta && (
