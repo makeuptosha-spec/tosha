@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { fmt, esEsteMes, hoyObj, StatCard, ProgressBar, useTema, colorTema, parseFecha, iconoCuenta } from "../utils.jsx";
-import { calcularSaldo } from "./Cuentas.jsx";
+import { calcularSaldo, calcularCuotaMensual, diasHasta } from "./Cuentas.jsx";
 import { estadoFactura } from "./Facturas.jsx";
 
 const HORA = new Date().getHours();
@@ -84,6 +84,20 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
   const balanceTotal = useMemo(() =>
     cuentasConSaldo.reduce((s, c) => s + c.saldo, 0),
     [cuentasConSaldo]
+  );
+
+  // ── TARJETAS DE CRÉDITO ──
+  const tarjetas = useMemo(() =>
+    cuentasConSaldo
+      .filter(c => c.tipo === "tarjeta_credito")
+      .map(c => ({
+        ...c,
+        deuda: Math.max(0, -c.saldo),
+        cuotaMensual: calcularCuotaMensual(c, movimientos),
+        diasCorte: diasHasta(c.fechaCorte),
+        diasPago: diasHasta(c.fechaPago),
+      })),
+    [cuentasConSaldo, movimientos]
   );
 
   const movMes = movimientosVisibles.filter(m => esEsteMes(m.fecha));
@@ -193,6 +207,31 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
         <StatCard icon="wallet" label="Me deben" value={fmt(totalMeDeben)} color="var(--primary)" />
         <StatCard icon="alert" label="Debo" value={fmt(totalDebo)} color="var(--danger)" />
       </div>
+
+      {/* TARJETAS DE CRÉDITO */}
+      {tarjetas.length > 0 && (
+        <div style={{ background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1.5px solid var(--accent-soft)", boxShadow: "var(--shadow)" }}>
+          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)", marginBottom: 12 }}>💳 Tarjetas de crédito</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {tarjetas.map(c => (
+              <div key={c.id} style={{ padding: "10px 14px", borderRadius: 12, background: "var(--bg)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0 }}>{c.nombre}</p>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: "var(--danger)", margin: 0 }}>{fmt(c.deuda)}</p>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, flexWrap: "wrap", gap: 6 }}>
+                  <span style={{ fontSize: 11, color: "var(--mid)" }}>
+                    {c.diasCorte != null && <>Corte {c.diasCorte < 0 ? `hace ${Math.abs(c.diasCorte)}d` : c.diasCorte === 0 ? "hoy" : `en ${c.diasCorte}d`}</>}
+                    {c.diasCorte != null && c.diasPago != null && " · "}
+                    {c.diasPago != null && <>Pago {c.diasPago < 0 ? `hace ${Math.abs(c.diasPago)}d` : c.diasPago === 0 ? "hoy" : `en ${c.diasPago}d`}</>}
+                  </span>
+                  {c.cuotaMensual > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--dark)" }}>Cuota: {fmt(c.cuotaMensual)}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* RESUMEN FACTURAS RECURRENTES */}
       {resumenFacturas.total > 0 && (
