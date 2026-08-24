@@ -20,8 +20,11 @@ export const calcularSaldo = (cuenta, movimientos) => {
 // Cuota mensual de una tarjeta de crédito: suma, de cada compra a cuotas,
 // la fracción (monto / cuotas) mientras siga dentro de su plazo. Una
 // compra "de contado" tiene cuotas = 1, así que solo pesa un mes.
+// Si la cuenta tiene cuotaMensualManual (el usuario la sobreescribió a
+// mano, ej. porque el banco cobra distinto), esa gana.
 export const calcularCuotaMensual = (cuenta, movimientos) => {
   if (cuenta.tipo !== "tarjeta_credito") return 0;
+  if (cuenta.cuotaMensualManual > 0) return Number(cuenta.cuotaMensualManual);
   const hoy = new Date();
   return movimientos
     .filter(m => m.tipo === "gasto" && m.cuentaId === cuenta.id)
@@ -32,6 +35,15 @@ export const calcularCuotaMensual = (cuenta, movimientos) => {
       if (meses >= 0 && meses < cuotas) return total + Number(m.monto) / cuotas;
       return total;
     }, 0);
+};
+
+// Días que faltan para el próximo día-del-mes dado (corte/pago de
+// tarjeta). Igual que se hace con diaVencimiento en Facturas: puede dar
+// negativo si ya pasó este mes.
+export const diasHasta = (diaMes) => {
+  if (!diaMes) return null;
+  const hoy = new Date();
+  return Number(diaMes) - hoy.getDate();
 };
 
 export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimientos }) {
@@ -45,7 +57,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   const [guardandoCuenta, setGuardandoCuenta] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", exento4x1000: false };
+  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", fechaCorte: "", fechaPago: "", cuotaMensualManual: "", exento4x1000: false };
   const [form, setForm] = useState(formBase);
 
   const transferBase = { cuentaId: "", cuentaDestinoId: "", monto: "", descripcion: "" };
@@ -72,6 +84,9 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       nombre: form.nombre, tipo: form.tipo,
       saldoInicial: esTarjeta ? -Math.abs(Number(form.saldoInicial)) : Number(form.saldoInicial),
       cupoTotal: esTarjeta ? Number(form.cupoTotal) : null,
+      fechaCorte: esTarjeta && form.fechaCorte !== "" ? Number(form.fechaCorte) : null,
+      fechaPago: esTarjeta && form.fechaPago !== "" ? Number(form.fechaPago) : null,
+      cuotaMensualManual: esTarjeta && form.cuotaMensualManual !== "" ? Number(form.cuotaMensualManual) : null,
       exento4x1000: esCuentaGravable ? !!form.exento4x1000 : false,
       activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
@@ -96,6 +111,9 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       nombre: c.nombre, tipo: c.tipo,
       saldoInicial: c.tipo === "tarjeta_credito" ? String(Math.abs(c.saldoInicial)) : String(c.saldoInicial),
       cupoTotal: c.cupoTotal != null ? String(c.cupoTotal) : "",
+      fechaCorte: c.fechaCorte != null ? String(c.fechaCorte) : "",
+      fechaPago: c.fechaPago != null ? String(c.fechaPago) : "",
+      cuotaMensualManual: c.cuotaMensualManual != null ? String(c.cuotaMensualManual) : "",
       exento4x1000: !!c.exento4x1000,
     });
     setEditandoId(c.id); setMostrarForm(true);
@@ -248,10 +266,26 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
             </div>
           </div>
           {esTarjeta && (
-            <div>
-              <label style={{ fontSize: 11, color: "var(--mid)" }}>Cupo total</label>
-              <input type="text" value={form.cupoTotal ? fmtNum(form.cupoTotal) : ""} onChange={e => setForm({ ...form, cupoTotal: parseNum(e.target.value) })} />
-            </div>
+            <>
+              <div>
+                <label style={{ fontSize: 11, color: "var(--mid)" }}>Cupo total</label>
+                <input type="text" value={form.cupoTotal ? fmtNum(form.cupoTotal) : ""} onChange={e => setForm({ ...form, cupoTotal: parseNum(e.target.value) })} />
+              </div>
+              <div className="form-grid">
+                <div>
+                  <label style={{ fontSize: 11, color: "var(--mid)" }}>Día de corte</label>
+                  <input type="number" min="1" max="31" value={form.fechaCorte} onChange={e => setForm({ ...form, fechaCorte: e.target.value })} placeholder="Ej: 15" />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: "var(--mid)" }}>Día de pago</label>
+                  <input type="number" min="1" max="31" value={form.fechaPago} onChange={e => setForm({ ...form, fechaPago: e.target.value })} placeholder="Ej: 5" />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuota de este mes (opcional)</label>
+                <input type="text" value={form.cuotaMensualManual ? fmtNum(form.cuotaMensualManual) : ""} onChange={e => setForm({ ...form, cuotaMensualManual: parseNum(e.target.value) })} placeholder="La calculamos por vos, o poné la tuya" />
+              </div>
+            </>
           )}
           {esCuentaGravable && (
             <div onClick={() => setForm(f => ({ ...f, exento4x1000: !f.exento4x1000 }))} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "var(--bg)", padding: "12px 14px", borderRadius: 14, border: "1px solid var(--border)", cursor: "pointer" }}>
@@ -352,6 +386,12 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
                     <span>Disponible: <strong style={{ color: "var(--dark)" }}>{fmt(disponible)}</strong> de {fmt(cupo)}</span>
                     {cuotaMensual > 0 && <span>Cuota este mes: <strong style={{ color: "var(--dark)" }}>{fmt(cuotaMensual)}</strong></span>}
                   </div>
+                  {(c.fechaCorte || c.fechaPago) && (
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 11, color: "var(--mid)", flexWrap: "wrap", gap: 6 }}>
+                      {c.fechaCorte && <span>Corte: día {c.fechaCorte}</span>}
+                      {c.fechaPago && <span>Pago: día {c.fechaPago}</span>}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
