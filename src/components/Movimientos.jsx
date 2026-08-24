@@ -5,6 +5,7 @@ import { fmt, fmtNum, parseNum, fmtFecha, parseFecha, hoyLocal, Icon, Badge, CAT
 import EscanearRecibo from "./EscanearRecibo.jsx";
 import ColaRecibos from "./ColaRecibos.jsx";
 import DictarMovimiento from "./DictarMovimiento.jsx";
+import MigracionCuatroPorMil from "./MigracionCuatroPorMil.jsx";
 
 export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const [busqueda, setBusqueda] = useState("");
@@ -183,6 +184,8 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
           </div>
         </div>
       )}
+
+      <MigracionCuatroPorMil movimientos={movimientos} setMovimientos={setMovimientos} />
 
       {/* BARRA SUPERIOR */}
       <div style={{ background: "var(--white)", borderRadius: 20, padding: 20, border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}>
