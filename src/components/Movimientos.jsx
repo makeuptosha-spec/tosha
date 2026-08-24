@@ -20,8 +20,10 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const [mostrarDictar, setMostrarDictar] = useState(false);
 
   const cuentaPorDefecto = () => cuentas.find(c => c.tipo === "efectivo")?.id || cuentas[0]?.id || "";
-  const formBase = { tipo: "gasto", monto: "", categoria: "", cuentaId: cuentaPorDefecto(), descripcion: "", fecha: hoyLocal() };
+  const formBase = { tipo: "gasto", monto: "", categoria: "", cuentaId: cuentaPorDefecto(), descripcion: "", fecha: hoyLocal(), cuotas: "1" };
   const [form, setForm] = useState(formBase);
+  const cuentaSeleccionada = cuentas.find(c => c.id === form.cuentaId);
+  const esCompraTarjeta = form.tipo === "gasto" && cuentaSeleccionada?.tipo === "tarjeta_credito";
 
   const showToast = (msg, tipo = "ok") => { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); };
 
@@ -85,6 +87,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
       tipo: form.tipo, monto: Number(form.monto), categoria: form.categoria, cuentaId: form.cuentaId,
       descripcion: form.descripcion, fecha: form.fecha, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
+    if (esCompraTarjeta) datos.cuotas = Math.max(1, Number(form.cuotas) || 1);
     try {
       if (editandoId) {
         await updateDoc(doc(db, "movimientos", editandoId), datos);
@@ -103,7 +106,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   };
 
   const abrirEdicion = (m) => {
-    setForm({ tipo: m.tipo, monto: String(m.monto), categoria: m.categoria, cuentaId: m.cuentaId || "", descripcion: m.descripcion || "", fecha: (m.fecha || hoyLocal()).slice(0, 10) });
+    setForm({ tipo: m.tipo, monto: String(m.monto), categoria: m.categoria, cuentaId: m.cuentaId || "", descripcion: m.descripcion || "", fecha: (m.fecha || hoyLocal()).slice(0, 10), cuotas: String(m.cuotas || 1) });
     setEditandoId(m.id); setMostrarForm(true); window.scrollTo(0, 0);
   };
 
@@ -263,6 +266,13 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
             </div>
           </div>
 
+          {esCompraTarjeta && (
+            <div>
+              <label style={{ fontSize: 11, color: "var(--mid)" }}>¿A cuántas cuotas?</label>
+              <input type="number" min="1" value={form.cuotas} onChange={e => setForm({ ...form, cuotas: e.target.value })} placeholder="1 (de contado)" />
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 10 }}>
             <div style={{ flex: "0 0 132px", overflow: "hidden" }}>
               <label style={{ fontSize: 11, color: "var(--mid)" }}>Fecha</label>
@@ -340,11 +350,14 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
                       ? <>{cuentaConIcono(m.cuentaId)} → {cuentaConIcono(m.cuentaDestinoId)} · {fmtFecha(m.fecha)}</>
                       : <>{m.categoria} · {cuentaConIcono(m.cuentaId)} · {fmtFecha(m.fecha)}</>}
                   </p>
-                  {m.gmf4x1000 > 0 && <p style={{ fontSize: 10, color: "var(--mid)", margin: "2px 0 0" }}>4x1000: {fmt(m.gmf4x1000)}</p>}
+                  {m.cuotas > 1 && <p style={{ fontSize: 10, color: "var(--mid)", margin: "2px 0 0" }}>{m.cuotas} cuotas de {fmt(m.monto / m.cuotas)}</p>}
                 </div>
-                <p style={{ fontSize: 15, fontWeight: 800, color: esTransferencia ? "var(--accent)" : esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", margin: 0, flexShrink: 0 }}>
-                  {esTransferencia ? "" : esIngreso ? "+" : "−"}{fmt(Math.abs(m.monto))}
-                </p>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0 }}>
+                  <p style={{ fontSize: 15, fontWeight: 800, color: esTransferencia ? "var(--accent)" : esAjuste ? "var(--mid)" : esIngreso ? "var(--success)" : "var(--danger)", margin: 0 }}>
+                    {esTransferencia ? "" : esIngreso ? "+" : "−"}{fmt(Math.abs(m.monto) + Number(m.gmf4x1000 || 0))}
+                  </p>
+                  {m.gmf4x1000 > 0 && <p style={{ fontSize: 10, color: "var(--mid)", margin: "2px 0 0" }}>{fmt(m.monto)} + 4x1000 {fmt(m.gmf4x1000)}</p>}
+                </div>
                 <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                   {!esAjuste && !esTransferencia && <button onClick={() => abrirEdicion(m)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--primary-deep)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={13} /></button>}
                   <button onClick={() => setMovAEliminar(m)} style={{ background: "var(--danger-bg)", border: "none", borderRadius: 8, width: 30, height: 30, color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={13} /></button>
