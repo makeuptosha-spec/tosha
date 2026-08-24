@@ -17,6 +17,23 @@ export const calcularSaldo = (cuenta, movimientos) => {
   return saldo;
 };
 
+// Cuota mensual de una tarjeta de crédito: suma, de cada compra a cuotas,
+// la fracción (monto / cuotas) mientras siga dentro de su plazo. Una
+// compra "de contado" tiene cuotas = 1, así que solo pesa un mes.
+export const calcularCuotaMensual = (cuenta, movimientos) => {
+  if (cuenta.tipo !== "tarjeta_credito") return 0;
+  const hoy = new Date();
+  return movimientos
+    .filter(m => m.tipo === "gasto" && m.cuentaId === cuenta.id)
+    .reduce((total, m) => {
+      const cuotas = Number(m.cuotas) || 1;
+      const fechaCompra = new Date(m.fecha);
+      const meses = (hoy.getFullYear() - fechaCompra.getFullYear()) * 12 + (hoy.getMonth() - fechaCompra.getMonth());
+      if (meses >= 0 && meses < cuotas) return total + Number(m.monto) / cuotas;
+      return total;
+    }, 0);
+};
+
 export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimientos }) {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [mostrarTransferencia, setMostrarTransferencia] = useState(false);
@@ -27,7 +44,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   const [guardandoAjuste, setGuardandoAjuste] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", cuotaMensual: "", exento4x1000: false };
+  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", exento4x1000: false };
   const [form, setForm] = useState(formBase);
 
   const transferBase = { cuentaId: "", cuentaDestinoId: "", monto: "", descripcion: "" };
@@ -52,7 +69,6 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       nombre: form.nombre, tipo: form.tipo,
       saldoInicial: esTarjeta ? -Math.abs(Number(form.saldoInicial)) : Number(form.saldoInicial),
       cupoTotal: esTarjeta ? Number(form.cupoTotal) : null,
-      cuotaMensual: esTarjeta ? Number(form.cuotaMensual || 0) : null,
       exento4x1000: esCuentaGravable ? !!form.exento4x1000 : false,
       activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
@@ -76,7 +92,6 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       nombre: c.nombre, tipo: c.tipo,
       saldoInicial: c.tipo === "tarjeta_credito" ? String(Math.abs(c.saldoInicial)) : String(c.saldoInicial),
       cupoTotal: c.cupoTotal != null ? String(c.cupoTotal) : "",
-      cuotaMensual: c.cuotaMensual != null ? String(c.cuotaMensual) : "",
       exento4x1000: !!c.exento4x1000,
     });
     setEditandoId(c.id); setMostrarForm(true);
@@ -229,15 +244,9 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
             </div>
           </div>
           {esTarjeta && (
-            <div className="form-grid">
-              <div>
-                <label style={{ fontSize: 11, color: "var(--mid)" }}>Cupo total</label>
-                <input type="text" value={form.cupoTotal ? fmtNum(form.cupoTotal) : ""} onChange={e => setForm({ ...form, cupoTotal: parseNum(e.target.value) })} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuota mensual</label>
-                <input type="text" value={form.cuotaMensual ? fmtNum(form.cuotaMensual) : ""} onChange={e => setForm({ ...form, cuotaMensual: parseNum(e.target.value) })} />
-              </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--mid)" }}>Cupo total</label>
+              <input type="text" value={form.cupoTotal ? fmtNum(form.cupoTotal) : ""} onChange={e => setForm({ ...form, cupoTotal: parseNum(e.target.value) })} />
             </div>
           )}
           {esCuentaGravable && (
@@ -305,6 +314,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
           const cupo = esTC ? Number(c.cupoTotal) || 0 : 0;
           const disponible = esTC ? Math.max(0, cupo - deuda) : 0;
           const pctUsado = esTC && cupo ? Math.min(100, (deuda / cupo) * 100) : 0;
+          const cuotaMensual = esTC ? calcularCuotaMensual(c, movimientos) : 0;
           return (
             <div key={c.id} className="animate" style={{ background: "var(--white)", borderRadius: 18, padding: "16px 18px", border: "1px solid var(--border)", boxShadow: "var(--shadow)", display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -336,7 +346,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
                   <ProgressBar pct={pctUsado} color={pctUsado > 80 ? "var(--danger)" : "var(--primary)"} bg="var(--border)" height={8} />
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: "var(--mid)", flexWrap: "wrap", gap: 6 }}>
                     <span>Disponible: <strong style={{ color: "var(--dark)" }}>{fmt(disponible)}</strong> de {fmt(cupo)}</span>
-                    {c.cuotaMensual > 0 && <span>Cuota: <strong style={{ color: "var(--dark)" }}>{fmt(c.cuotaMensual)}</strong></span>}
+                    {cuotaMensual > 0 && <span>Cuota este mes: <strong style={{ color: "var(--dark)" }}>{fmt(cuotaMensual)}</strong></span>}
                   </div>
                 </div>
               )}
