@@ -17,23 +17,46 @@ export const calcularSaldo = (cuenta, movimientos) => {
   return saldo;
 };
 
+// Número de ciclo de facturación al que pertenece una fecha, dado el día
+// de corte: si la fecha cae después del corte de su mes, ya pertenece al
+// ciclo que cierra el corte del mes siguiente. Es un entero creciente
+// (año*12+mes) que sirve para comparar "cuántos ciclos pasaron entre dos
+// fechas" sin líos de calendario.
+const numeroCiclo = (fecha, diaCorte) => {
+  const d = new Date(fecha);
+  let mes = d.getMonth();
+  let anio = d.getFullYear();
+  if (d.getDate() > diaCorte) { mes += 1; if (mes > 11) { mes = 0; anio += 1; } }
+  return anio * 12 + mes;
+};
+
 // Cuota mensual de una tarjeta de crédito: suma, de cada compra a cuotas,
-// la fracción (monto / cuotas) mientras siga dentro de su plazo. Una
-// compra "de contado" tiene cuotas = 1, así que solo pesa un mes.
-// Si la cuenta tiene cuotaMensualManual (el usuario la sobreescribió a
-// mano, ej. porque el banco cobra distinto), esa gana.
+// la fracción (monto / cuotas) que corresponde al ciclo de facturación
+// que ya cerró (el que se paga ahora), no al mes calendario. Si la
+// cuenta no tiene fecha de corte configurada, se usa el mes calendario
+// como aproximación. Una compra "de contado" tiene cuotas = 1, así que
+// solo pesa un ciclo. Si la cuenta tiene cuotaMensualManual (el usuario
+// la sobreescribió a mano, ej. porque el banco cobra distinto), esa gana.
 export const calcularCuotaMensual = (cuenta, movimientos) => {
   if (cuenta.tipo !== "tarjeta_credito") return 0;
   if (cuenta.cuotaMensualManual > 0) return Number(cuenta.cuotaMensualManual);
   const hoy = new Date();
+  const diaCorte = cuenta.fechaCorte;
+  const cicloCerrado = diaCorte ? numeroCiclo(hoy, diaCorte) - 1 : null;
   return movimientos
     .filter(m => m.tipo === "gasto" && m.cuentaId === cuenta.id)
     .reduce((total, m) => {
       const cuotas = Number(m.cuotas) || 1;
-      const fechaCompra = new Date(m.fecha);
-      const meses = (hoy.getFullYear() - fechaCompra.getFullYear()) * 12 + (hoy.getMonth() - fechaCompra.getMonth());
-      if (meses >= 0 && meses < cuotas) return total + Number(m.monto) / cuotas;
-      return total;
+      let activo;
+      if (diaCorte) {
+        const diff = cicloCerrado - numeroCiclo(m.fecha, diaCorte);
+        activo = diff >= 0 && diff < cuotas;
+      } else {
+        const fechaCompra = new Date(m.fecha);
+        const meses = (hoy.getFullYear() - fechaCompra.getFullYear()) * 12 + (hoy.getMonth() - fechaCompra.getMonth());
+        activo = meses >= 0 && meses < cuotas;
+      }
+      return activo ? total + Number(m.monto) / cuotas : total;
     }, 0);
 };
 
