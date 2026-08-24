@@ -42,6 +42,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   const [ajustando, setAjustando] = useState(null);
   const [saldoReal, setSaldoReal] = useState("");
   const [guardandoAjuste, setGuardandoAjuste] = useState(false);
+  const [guardandoCuenta, setGuardandoCuenta] = useState(false);
   const [toast, setToast] = useState(null);
 
   const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", exento4x1000: false };
@@ -63,8 +64,10 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   const esCuentaGravable = form.tipo === "banco" || form.tipo === "ahorros" || esTarjeta;
 
   const guardar = async () => {
+    if (guardandoCuenta) return;
     if (!form.nombre || form.saldoInicial === "") return showToast(esTarjeta ? "⚠️ Completa nombre y deuda actual" : "⚠️ Completa nombre y saldo inicial", "warn");
     if (esTarjeta && form.cupoTotal === "") return showToast("⚠️ Completa el cupo total", "warn");
+    setGuardandoCuenta(true);
     const datos = {
       nombre: form.nombre, tipo: form.tipo,
       saldoInicial: esTarjeta ? -Math.abs(Number(form.saldoInicial)) : Number(form.saldoInicial),
@@ -85,6 +88,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       }
       setForm(formBase); setEditandoId(null); setMostrarForm(false);
     } catch { showToast("❌ Error al guardar", "danger"); }
+    finally { setGuardandoCuenta(false); }
   };
 
   const abrirEdicion = (c) => {
@@ -260,8 +264,8 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
               </div>
             </div>
           )}
-          <button onClick={guardar} style={{ background: "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontWeight: 700, fontSize: 14 }}>
-            {editandoId ? "Actualizar" : "Guardar cuenta"}
+          <button onClick={guardar} disabled={guardandoCuenta} style={{ background: "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontWeight: 700, fontSize: 14, opacity: guardandoCuenta ? 0.6 : 1 }}>
+            {guardandoCuenta ? "Guardando…" : editandoId ? "Actualizar" : "Guardar cuenta"}
           </button>
         </div>
       )}

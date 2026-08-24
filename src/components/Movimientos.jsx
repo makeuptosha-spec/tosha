@@ -19,6 +19,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const [mostrarEscanear, setMostrarEscanear] = useState(false);
   const [mostrarCola, setMostrarCola] = useState(false);
   const [mostrarDictar, setMostrarDictar] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   const cuentaPorDefecto = () => cuentas.find(c => c.tipo === "efectivo")?.id || cuentas[0]?.id || "";
   const formBase = { tipo: "gasto", monto: "", categoria: "", cuentaId: cuentaPorDefecto(), descripcion: "", fecha: hoyLocal(), cuotas: "1" };
@@ -83,7 +84,9 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
   const categoriasForm = form.tipo === "ingreso" ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO;
 
   const guardar = async () => {
+    if (guardando) return;
     if (!form.monto || !form.categoria || !form.cuentaId) return showToast("⚠️ Completa monto, categoría y cuenta", "warn");
+    setGuardando(true);
     const datos = {
       tipo: form.tipo, monto: Number(form.monto), categoria: form.categoria, cuentaId: form.cuentaId,
       descripcion: form.descripcion, fecha: form.fecha, hogarId: HOGAR_ID, uid: auth.currentUser.uid
@@ -104,6 +107,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
       }
       setForm(formBase); setEditandoId(null); setMostrarForm(false);
     } catch { showToast("❌ Error al guardar", "danger"); }
+    finally { setGuardando(false); }
   };
 
   const abrirEdicion = (m) => {
@@ -287,8 +291,8 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
             </div>
           </div>
 
-          <button onClick={guardar} style={{ background: form.tipo === "ingreso" ? "linear-gradient(135deg, var(--success), #43A047)" : "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 700, fontSize: 14 }}>
-            {editandoId ? "Actualizar" : "Guardar"}
+          <button onClick={guardar} disabled={guardando} style={{ background: form.tipo === "ingreso" ? "linear-gradient(135deg, var(--success), #43A047)" : "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 700, fontSize: 14, opacity: guardando ? 0.6 : 1 }}>
+            {guardando ? "Guardando…" : editandoId ? "Actualizar" : "Guardar"}
           </button>
         </div>
       )}
