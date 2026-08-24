@@ -161,7 +161,11 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
     finally { setEnviandoTransfer(false); }
   };
 
-  const abrirAjuste = (c) => { setAjustando(c); setSaldoReal(String(Math.round(calcularSaldo(c, movimientos)))); };
+  const abrirAjuste = (c) => {
+    setAjustando(c);
+    const saldoActual = calcularSaldo(c, movimientos);
+    setSaldoReal(String(Math.round(c.tipo === "tarjeta_credito" ? Math.max(0, -saldoActual) : saldoActual)));
+  };
 
   const abrirPagoTarjeta = (c) => {
     setTransferForm({ ...transferBase, cuentaDestinoId: c.id });
@@ -174,7 +178,8 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
     setGuardandoAjuste(true);
     try {
       const saldoActual = calcularSaldo(ajustando, movimientos);
-      const diferencia = Number(saldoReal) - saldoActual;
+      const saldoRealNum = ajustando.tipo === "tarjeta_credito" ? -Math.abs(Number(saldoReal)) : Number(saldoReal);
+      const diferencia = saldoRealNum - saldoActual;
       if (diferencia === 0) { showToast("Ya estaban iguales, nada que ajustar"); setAjustando(null); return; }
       const fecha = new Date().toISOString();
       const nuevoMovimiento = {
@@ -322,8 +327,12 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div className="animate" style={{ background: "var(--white)", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
             <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 6 }}>Ajustar "{ajustando.nombre}"</h3>
-            <p style={{ fontSize: 12, color: "var(--mid)", marginBottom: 16 }}>Saldo en la app: <strong>{fmt(calcularSaldo(ajustando, movimientos))}</strong> — poné el saldo real (ej: el que ves en el banco) y se crea un ajuste automático por la diferencia.</p>
-            <label style={{ fontSize: 11, color: "var(--mid)" }}>Saldo real</label>
+            <p style={{ fontSize: 12, color: "var(--mid)", marginBottom: 16 }}>
+              {ajustando.tipo === "tarjeta_credito"
+                ? <>Debés en la app: <strong>{fmt(Math.max(0, -calcularSaldo(ajustando, movimientos)))}</strong> — poné cuánto debés hoy según el banco y se crea un ajuste automático por la diferencia.</>
+                : <>Saldo en la app: <strong>{fmt(calcularSaldo(ajustando, movimientos))}</strong> — poné el saldo real (ej: el que ves en el banco) y se crea un ajuste automático por la diferencia.</>}
+            </p>
+            <label style={{ fontSize: 11, color: "var(--mid)" }}>{ajustando.tipo === "tarjeta_credito" ? "¿Cuánto debés hoy?" : "Saldo real"}</label>
             <input type="text" value={saldoReal ? fmtNum(saldoReal) : ""} onChange={e => setSaldoReal(parseNum(e.target.value))} autoFocus />
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={() => setAjustando(null)} style={{ flex: 1, background: "var(--border)", color: "var(--dark)", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>Cancelar</button>
