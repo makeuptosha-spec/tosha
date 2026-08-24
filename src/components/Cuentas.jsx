@@ -7,9 +7,9 @@ export const calcularSaldo = (cuenta, movimientos) => {
   let saldo = Number(cuenta.saldoInicial) || 0;
   movimientos.forEach(m => {
     if (m.tipo === "ingreso" && m.cuentaId === cuenta.id) saldo += Number(m.monto);
-    else if (m.tipo === "gasto" && m.cuentaId === cuenta.id) saldo -= Number(m.monto);
+    else if (m.tipo === "gasto" && m.cuentaId === cuenta.id) saldo -= Number(m.monto) + Number(m.gmf4x1000 || 0);
     else if (m.tipo === "transferencia") {
-      if (m.cuentaId === cuenta.id) saldo -= Number(m.monto);
+      if (m.cuentaId === cuenta.id) saldo -= Number(m.monto) + Number(m.gmf4x1000 || 0);
       if (m.cuentaDestinoId === cuenta.id) saldo += Number(m.monto);
     }
     else if (m.tipo === "ajuste" && m.cuentaId === cuenta.id) saldo += Number(m.monto);
