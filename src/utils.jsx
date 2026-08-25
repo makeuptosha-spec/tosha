@@ -201,9 +201,28 @@ export const fmtMes = (mesStr) => {
 };
 
 // ── COMPONENTES BASE Y CARGADOR ──
+const BILLETES = [
+  { tx: 90, ty: -110, rot: 380, delay: 0 },
+  { tx: 130, ty: -50, rot: 300, delay: 0.15 },
+  { tx: 55, ty: -140, rot: 420, delay: 0.3 },
+  { tx: 115, ty: -10, rot: 250, delay: 0.45 },
+  { tx: 150, ty: -85, rot: 360, delay: 0.6 },
+  { tx: 70, ty: -60, rot: 330, delay: 0.75 },
+];
+
 export const LoaderInteractivo = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg)' }}>
-    <div className="spinner" />
+  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 18, height: '100vh', background: 'var(--bg)' }}>
+    <div style={{ position: 'relative', width: 160, height: 140 }}>
+      <span className="money-cannon" style={{ position: 'absolute', left: 10, bottom: 10, fontSize: 40, display: 'inline-block', transformOrigin: '30% 70%' }}>🔫</span>
+      {BILLETES.map((b, i) => (
+        <span
+          key={i}
+          className="money-blast-bill"
+          style={{ left: 26, top: 96, fontSize: 22, '--tx': `${b.tx}px`, '--ty': `${b.ty}px`, '--rot': `${b.rot}deg`, animationDelay: `${b.delay}s` }}
+        >💵</span>
+      ))}
+    </div>
+    <span style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: 'var(--mid)' }}>Cargando tus finanzas...</span>
   </div>
 );
 
@@ -243,13 +262,13 @@ export const Icon = ({ name, size = 18, color }) => {
 const PALE_TOKEN = { "var(--success)": "var(--success-bg)", "var(--danger)": "var(--danger-bg)", "var(--warn)": "var(--warn-bg)", "var(--primary)": "var(--primary-pale)" };
 
 export const StatCard = ({ icon, label, value, sub, color = "var(--primary)" }) => (
-  <div className="animate" style={{ position: "relative", background: "var(--white)", borderRadius: 20, padding: "20px 22px 20px 26px", boxShadow: "var(--shadow)", border: "1.5px solid var(--border)", overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
+  <div className="animate" style={{ position: "relative", background: "var(--white)", borderRadius: 20, padding: "20px 22px 20px 26px", boxShadow: "var(--shadow)", border: "1.5px solid var(--border)", overflow: "hidden", display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
     <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: color }} />
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
       <span style={{ fontSize: 12, fontWeight: 500, color: "var(--mid)", letterSpacing: 0.5 }}>{label}</span>
       <span style={{ width: 34, height: 34, borderRadius: 10, background: PALE_TOKEN[color] || "var(--primary-pale)", color, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={icon} size={16} /></span>
     </div>
-    <div style={{ fontFamily: "'Fraunces', serif", fontSize: 24, fontWeight: 700, color: "var(--dark)", lineHeight: 1.1 }}>{value}</div>
+    <div style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(17px, 5.5vw, 24px)", fontWeight: 700, color: "var(--dark)", lineHeight: 1.1, wordBreak: "break-word" }}>{value}</div>
     {sub && <div style={{ fontSize: 11, color: "var(--mid)" }}>{sub}</div>}
   </div>
 );
@@ -339,10 +358,14 @@ export const globalStyles = `
   @keyframes pulseLoader { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes moneyFloat { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-8px) rotate(6deg); } }
+  @keyframes cannonKick { 0%, 100% { transform: rotate(-40deg) scale(1); } 50% { transform: rotate(-40deg) scale(1.18); } }
+  @keyframes moneyBlast { 0% { transform: translate(0,0) rotate(0deg) scale(0.4); opacity: 0; } 12% { opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1); opacity: 0; } }
   .animate { animation: slideIn 0.35s ease both; }
   .pulsing { animation: pulseLoader 1.5s infinite ease-in-out; }
   .spinner { width: 40px; height: 40px; border: 3.5px solid var(--primary-pale); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
   .money-float { display: inline-block; animation: moneyFloat 2.4s ease-in-out infinite; }
+  .money-cannon { animation: cannonKick 0.6s ease-in-out infinite; }
+  .money-blast-bill { position: absolute; animation: moneyBlast 1.1s ease-out infinite; }
 
   .app-wrapper { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 90px; transition: all 0.3s ease; }
   .nav-menu { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--nav-bg); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; padding: 10px 0 20px; z-index: 1000; transition: all 0.3s ease; }
