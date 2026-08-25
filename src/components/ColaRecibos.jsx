@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
 import { collection, getDocs, query, where, updateDoc, deleteDoc, doc, addDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, hoyLocal, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, iconoCuenta, calcular4x1000 } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, hoyLocal, HOGAR_ID, iconoCuenta, calcular4x1000 } from "../utils.jsx";
 
-export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
+export default function ColaRecibos({ cuentas, categorias, setMovimientos, onCerrar }) {
   const [borradores, setBorradores] = useState([]);
   const [cargando, setCargando]     = useState(true);
   const [guardando, setGuardando]   = useState(null);
@@ -112,7 +112,7 @@ export default function ColaRecibos({ cuentas, setMovimientos, onCerrar }) {
                 <label style={{ fontSize: 11, color: "var(--mid)", fontWeight: 600 }}>Categoría</label>
                 <select value={b.categoriaSugerida || ""} onChange={e => actualizarCampo(b._id, "categoriaSugerida", e.target.value)} style={{ marginTop: 4 }}>
                   <option value="">Selecciona…</option>
-                  {(b.tipo === "ingreso" ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO).map(c => <option key={c}>{c}</option>)}
+                  {categorias.filter(c => c.tipo === (b.tipo === "ingreso" ? "ingreso" : "gasto")).map(c => <option key={c.id}>{c.nombre}</option>)}
                 </select>
               </div>
               <div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "./firebase.js";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, setDoc, writeBatch } from "firebase/firestore";
 
 // ── TEMA (claro/oscuro) ──
 const TEMA_KEY = "tosha-tema";
@@ -36,6 +36,59 @@ export const useTema = () => {
   return [tema, () => aplicarTema(tema === "dark" ? "light" : "dark")];
 };
 
+// ── MONEDA ──
+// Mismo patrón que TEMA: cache local (localStorage) + evento custom, así
+// fmt()/fmtNum() (funciones puras llamadas desde decenas de archivos sin
+// hooks) pueden leer la moneda actual sin Context ni prop-drilling. La
+// fuente de verdad real vive en Firestore (configuracion/{uid}, doc ID =
+// uid) y se sincroniza al cache local una vez por sesión en App.jsx —
+// así un cambio hecho en otro dispositivo se refleja al volver a entrar.
+const MONEDA_KEY = "tosha-moneda";
+const MONEDA_EVENTO = "tosha-moneda-cambio";
+export const MONEDAS = [
+  { id: "COP", label: "Peso colombiano", locale: "es-CO" },
+  { id: "USD", label: "Dólar estadounidense", locale: "en-US" },
+];
+
+export const getMoneda = () => {
+  if (typeof localStorage === "undefined") return "COP";
+  return localStorage.getItem(MONEDA_KEY) === "USD" ? "USD" : "COP";
+};
+
+export const aplicarMoneda = (moneda) => {
+  localStorage.setItem(MONEDA_KEY, moneda === "USD" ? "USD" : "COP");
+  window.dispatchEvent(new Event(MONEDA_EVENTO));
+};
+
+export const useMoneda = () => {
+  const [moneda, setMoneda] = useState(getMoneda());
+  useEffect(() => {
+    const onChange = () => setMoneda(getMoneda());
+    window.addEventListener(MONEDA_EVENTO, onChange);
+    return () => window.removeEventListener(MONEDA_EVENTO, onChange);
+  }, []);
+  return moneda;
+};
+
+// Trae configuracion/{uid}; si no existe la crea con default COP. Sincroniza
+// el cache local con el doc real de Firestore al iniciar sesión.
+export async function sincronizarConfiguracion(uid) {
+  const ref = doc(db, "configuracion", uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    aplicarMoneda(snap.data()?.moneda);
+  } else {
+    await setDoc(ref, { uid, moneda: "COP" });
+    aplicarMoneda("COP");
+  }
+}
+
+// Escribe la moneda elegida en Firestore y actualiza el cache local. La usa Conf.jsx.
+export async function guardarMoneda(uid, moneda) {
+  await setDoc(doc(db, "configuracion", uid), { uid, moneda }, { merge: true });
+  aplicarMoneda(moneda);
+}
+
 // ── IDENTIDAD DEL HOGAR (campo legado, ya no se usa pa aislar datos) ──
 export const HOGAR_ID = "hogar-principal";
 
@@ -55,12 +108,38 @@ export async function fetchPropio(nombreColeccion, uid) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-// ── CATEGORÍAS POR DEFECTO ──
-export const CATEGORIAS_GASTO = [
+// ── CATEGORÍAS ──
+// Ya no son un array fijo: viven en Firestore (colección `categorias`,
+// editable desde el tab Conf) para que el usuario las personalice. Estos
+// defaults solo se usan como semilla la primera vez que un uid no tiene
+// ningún doc todavía (migración automática de usuarios existentes).
+const CATEGORIAS_GASTO_DEFAULT = [
   "Alimentación", "Transporte", "Vivienda", "Servicios", "Salud",
   "Entretenimiento", "Educación", "Ropa", "Suscripciones", "Deudas", "Préstamo", "Ahorro", "Impuestos", "Mascotas", "Otros"
 ];
-export const CATEGORIAS_INGRESO = ["Salario", "Ventas", "Trabajo", "Devolución", "Préstamo", "Otros"];
+const CATEGORIAS_INGRESO_DEFAULT = ["Salario", "Ventas", "Trabajo", "Devolución", "Préstamo", "Otros"];
+
+// Si el uid no tiene ningún doc en `categorias`, siembra los defaults una
+// sola vez (batch atómico, ~21 docs, muy por debajo del límite de 500).
+export async function asegurarCategorias(uid) {
+  const existentes = await fetchPropio("categorias", uid);
+  if (existentes.length > 0) return existentes;
+
+  const batch = writeBatch(db);
+  const nuevas = [];
+  let orden = 0;
+  for (const tipo of ["gasto", "ingreso"]) {
+    const lista = tipo === "gasto" ? CATEGORIAS_GASTO_DEFAULT : CATEGORIAS_INGRESO_DEFAULT;
+    for (const nombre of lista) {
+      const ref = doc(collection(db, "categorias"));
+      const datos = { uid, nombre, tipo, orden: orden++ };
+      batch.set(ref, datos);
+      nuevas.push({ id: ref.id, ...datos });
+    }
+  }
+  await batch.commit();
+  return nuevas;
+}
 
 // ── SANEO DE RESPUESTAS DE IA (Groq: escaneo de recibos + dictado por voz) ──
 // El JSON que devuelve el modelo no es de fiar por más que el prompt le pida
@@ -68,16 +147,17 @@ export const CATEGORIAS_INGRESO = ["Salario", "Ventas", "Trabajo", "Devolución"
 // puede mandar un monto no-numérico, una categoría inventada, o texto larguísimo.
 // Sin esto, esa basura se guarda tal cual en Firestore y rompe silenciosamente
 // sumas (NaN), filtros por categoría y fechas en el resto de la app.
-export function limpiarRespuestaIA(datos, tipoForzado) {
+export function limpiarRespuestaIA(datos, categorias, tipoForzado) {
   const tipo = tipoForzado || (datos?.tipo === "ingreso" ? "ingreso" : "gasto");
-  const categorias = tipo === "ingreso" ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO;
+  const nombresValidos = (categorias || []).filter(c => c.tipo === tipo).map(c => c.nombre);
   const montoNum = Number(datos?.monto);
   const acortar = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
+  const fallbackSugerida = nombresValidos.includes("Otros") ? "Otros" : (nombresValidos[0] || null);
   return {
     tipo,
     monto: Number.isFinite(montoNum) && montoNum > 0 ? Math.round(montoNum) : null,
-    categoria: categorias.includes(datos?.categoria) ? datos.categoria : null,
-    categoriaSugerida: categorias.includes(datos?.categoriaSugerida) ? datos.categoriaSugerida : "Otros",
+    categoria: nombresValidos.includes(datos?.categoria) ? datos.categoria : null,
+    categoriaSugerida: nombresValidos.includes(datos?.categoriaSugerida) ? datos.categoriaSugerida : fallbackSugerida,
     descripcion: acortar(datos?.descripcion, 140),
     comercio: acortar(datos?.comercio, 80),
     fecha: typeof datos?.fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(datos.fecha) ? datos.fecha : null,
@@ -128,7 +208,7 @@ export const TASA_4X1000 = 0.004;
 export const TIPOS_GRAVADOS_4X1000 = ["banco", "ahorros", "tarjeta_credito"];
 
 export const aplica4x1000 = (cuenta) =>
-  !!cuenta && TIPOS_GRAVADOS_4X1000.includes(cuenta.tipo) && !cuenta.exento4x1000;
+  getMoneda() === "COP" && !!cuenta && TIPOS_GRAVADOS_4X1000.includes(cuenta.tipo) && !cuenta.exento4x1000;
 
 // Calcula el 4x1000 de un débito, si la cuenta está gravada. Devuelve el
 // valor (entero, redondeado) o 0. Se guarda como campo del propio
@@ -141,14 +221,15 @@ export function calcular4x1000(cuenta, monto) {
 // ── UTILIDADES DE FORMATO Y FECHAS ──
 export const fmt = (n) => {
   const num = Number(n);
-  if (isNaN(num)) return "$ 0";
-  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(num);
+  const cfg = MONEDAS.find(m => m.id === getMoneda()) || MONEDAS[0];
+  return new Intl.NumberFormat(cfg.locale, { style: "currency", currency: cfg.id, minimumFractionDigits: 0 }).format(isNaN(num) ? 0 : num);
 };
 
 export const fmtNum = (n) => {
   const num = Number(n);
+  const cfg = MONEDAS.find(m => m.id === getMoneda()) || MONEDAS[0];
   if (isNaN(num)) return "0";
-  return new Intl.NumberFormat("es-CO").format(num);
+  return new Intl.NumberFormat(cfg.locale).format(num);
 };
 
 export const parseNum = (str) => String(str).replace(/\D/g, "");
@@ -258,6 +339,7 @@ export const Icon = ({ name, size = 18, color }) => {
     trash:      <svg {...props}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
     edit:       <svg {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>,
     camera:     <svg {...props}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+    settings:   <svg {...props}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
   };
   return icons[name] || null;
 };

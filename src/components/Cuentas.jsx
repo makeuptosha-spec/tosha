@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta, aplica4x1000, calcular4x1000 } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta, aplica4x1000, calcular4x1000, getMoneda } from "../utils.jsx";
 
 export const calcularSaldo = (cuenta, movimientos) => {
   let saldo = Number(cuenta.saldoInicial) || 0;
@@ -328,7 +328,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
               </div>
             </>
           )}
-          {esCuentaGravable && (
+          {esCuentaGravable && getMoneda() === "COP" && (
             <div onClick={() => setForm(f => ({ ...f, exento4x1000: !f.exento4x1000 }))} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "var(--bg)", padding: "12px 14px", borderRadius: 14, border: "1px solid var(--border)", cursor: "pointer" }}>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0 }}>Exenta de 4x1000</p>

@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, fmtFecha, parseFecha, hoyLocal, Icon, Badge, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, iconoCuenta, calcular4x1000 } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, fmtFecha, parseFecha, hoyLocal, Icon, Badge, HOGAR_ID, iconoCuenta, calcular4x1000 } from "../utils.jsx";
 import EscanearRecibo from "./EscanearRecibo.jsx";
 import ColaRecibos from "./ColaRecibos.jsx";
 import DictarMovimiento from "./DictarMovimiento.jsx";
 import MigracionCuatroPorMil from "./MigracionCuatroPorMil.jsx";
 
-export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
+export default function Movimientos({ movimientos, setMovimientos, cuentas, categorias }) {
   const [busqueda, setBusqueda] = useState("");
   const [filtroTiempo, setFiltroTiempo] = useState("mes");
   const [filtroTipo, setFiltroTipo] = useState("todos");
@@ -81,7 +81,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
     return d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
   };
 
-  const categoriasForm = form.tipo === "ingreso" ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO;
+  const categoriasForm = categorias.filter(c => c.tipo === form.tipo).map(c => c.nombre);
 
   const guardar = async () => {
     if (guardando) return;
@@ -167,11 +167,11 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
       )}
 
       {mostrarEscanear && (
-        <EscanearRecibo onBorradorCreado={() => { setMostrarEscanear(false); setMostrarCola(true); }} onClose={() => setMostrarEscanear(false)} />
+        <EscanearRecibo categorias={categorias} onBorradorCreado={() => { setMostrarEscanear(false); setMostrarCola(true); }} onClose={() => setMostrarEscanear(false)} />
       )}
 
       {mostrarDictar && (
-        <DictarMovimiento cuentas={cuentas} onGuardar={guardarDictado} onClose={() => setMostrarDictar(false)} />
+        <DictarMovimiento cuentas={cuentas} categorias={categorias} onGuardar={guardarDictado} onClose={() => setMostrarDictar(false)} />
       )}
 
       {/* MODAL ELIMINAR */}
@@ -303,7 +303,7 @@ export default function Movimientos({ movimientos, setMovimientos, cuentas }) {
             <span style={{ fontSize: 12, background: "var(--warn-bg)", color: "var(--warn)", padding: "4px 12px", borderRadius: 20, fontWeight: 700 }}>🧾 Recibos por confirmar</span>
             <button onClick={() => setMostrarCola(false)} style={{ background: "transparent", border: "none", color: "var(--mid)", fontSize: 18 }}>×</button>
           </div>
-          <ColaRecibos cuentas={cuentas} setMovimientos={setMovimientos} onCerrar={() => setMostrarCola(false)} />
+          <ColaRecibos cuentas={cuentas} categorias={categorias} setMovimientos={setMovimientos} onCerrar={() => setMostrarCola(false)} />
         </div>
       )}
 
