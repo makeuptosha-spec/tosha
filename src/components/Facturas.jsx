@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, CATEGORIAS_GASTO, HOGAR_ID, mesActual, iconoCuenta, calcular4x1000, useTema, colorTema } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, HOGAR_ID, mesActual, iconoCuenta, calcular4x1000, useTema, colorTema } from "../utils.jsx";
 import Deudas from "./Deudas.jsx";
 
 export const estadoFactura = (factura, pagosFactura) => {
@@ -55,7 +55,7 @@ const GraficaHistorico = ({ data }) => {
   );
 };
 
-export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, pagosFactura, setPagosFactura, setMovimientos, cuentas, deudas, setDeudas }) {
+export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, pagosFactura, setPagosFactura, setMovimientos, cuentas, deudas, setDeudas, categorias }) {
   const [vista, setVista] = useState("fijas");
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
@@ -285,7 +285,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
               <label style={{ fontSize: 11, color: "var(--mid)" }}>Categoría</label>
               <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
                 <option value="">Selecciona…</option>
-                {CATEGORIAS_GASTO.map(c => <option key={c}>{c}</option>)}
+                {categorias.filter(c => c.tipo === "gasto").map(c => <option key={c.id}>{c.nombre}</option>)}
               </select>
             </div>
             <div>

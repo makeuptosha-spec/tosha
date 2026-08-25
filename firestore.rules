@@ -68,7 +68,10 @@ service cloud.firestore {
     match /categorias/{docId} {
       allow read, delete: if esPropio();
       allow update: if esPropio() && noCambiaUid();
-      allow create: if creaComoPropio();
+      allow create: if creaComoPropio()
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.tipo in ["gasto", "ingreso"];
     }
     match /facturasRecurrentes/{docId} {
       allow read, delete: if esPropio();
@@ -114,6 +117,16 @@ service cloud.firestore {
       allow read, delete: if esPropio();
       allow update: if esPropio() && noCambiaUid();
       allow create: if creaComoPropio();
+    }
+
+    // Configuración por usuario (moneda, etc). Doc ID = uid directo: no hace
+    // falta query filtrada ni esPropio(), el propio segmento de la URL ya
+    // acota el acceso a su dueño.
+    match /configuracion/{uid} {
+      allow read: if request.auth != null && autorizado() && request.auth.uid == uid;
+      allow write: if request.auth != null && autorizado() && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.moneda in ["COP", "USD"];
     }
 
     // Todo lo demás (colecciones viejas de Tosha u otras) queda bloqueado por defecto.

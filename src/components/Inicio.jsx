@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { fmt, esEsteMes, hoyObj, StatCard, ProgressBar, useTema, colorTema, parseFecha, iconoCuenta } from "../utils.jsx";
+import { fmt, esEsteMes, hoyObj, StatCard, useTema, colorTema, parseFecha, iconoCuenta } from "../utils.jsx";
 import { calcularSaldo, calcularCuotaMensual, diasHasta } from "./Cuentas.jsx";
 import { estadoFactura } from "./Facturas.jsx";
 
@@ -71,7 +71,7 @@ const CustomLineChart = ({ data }) => {
   );
 };
 
-export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pagosFactura, presupuestos, deudas = [], metas = [] }) {
+export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pagosFactura, deudas = [] }) {
   const [filtroGrafica, setFiltroGrafica] = useState("mes");
 
   const movimientosVisibles = useMemo(() => movimientos.filter(m => m.tipo !== "transferencia"), [movimientos]);
@@ -126,31 +126,10 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
     return { total: activas.length, pagadas, pendientes: activas.length - pagadas, totalMes, totalPendiente };
   }, [facturasRecurrentes, pagosFactura]);
 
-  // ── PRESUPUESTOS EN RIESGO ──
-  const presupuestosEnRiesgo = useMemo(() => {
-    const gastoPorCat = {};
-    movMes.filter(m => m.tipo === "gasto").forEach(m => { gastoPorCat[m.categoria] = (gastoPorCat[m.categoria] || 0) + Number(m.monto); });
-    return presupuestos
-      .map(p => ({ ...p, gastado: gastoPorCat[p.categoria] || 0, pct: p.limiteMensual > 0 ? Math.round(((gastoPorCat[p.categoria] || 0) / p.limiteMensual) * 100) : 0 }))
-      .filter(p => p.pct >= 70)
-      .sort((a, b) => b.pct - a.pct);
-  }, [presupuestos, movMes]);
-
   // ── DEUDAS Y PRÉSTAMOS ──
   const deudasActivas = useMemo(() => deudas.filter(d => d.activa !== false && Number(d.saldoRestante) > 0), [deudas]);
   const totalDebo = deudasActivas.filter(d => d.tipo === "debo").reduce((s, d) => s + Number(d.saldoRestante), 0);
   const totalMeDeben = deudasActivas.filter(d => d.tipo === "me_deben").reduce((s, d) => s + Number(d.saldoRestante), 0);
-
-  // ── METAS DE AHORRO ──
-  const metasActivas = useMemo(() => metas.filter(m => m.activa !== false), [metas]);
-  const totalAhorrado = metasActivas.reduce((s, m) => s + Number(m.montoActual), 0);
-  const metaMasCercaCumplir = useMemo(() =>
-    metasActivas
-      .map(m => ({ ...m, pct: m.montoObjetivo > 0 ? Math.round((Number(m.montoActual) / Number(m.montoObjetivo)) * 100) : 0 }))
-      .filter(m => m.pct < 100)
-      .sort((a, b) => b.pct - a.pct)[0],
-    [metasActivas]
-  );
 
   // ── GRÁFICA ──
   const datosGrafica = useMemo(() => {
@@ -270,41 +249,6 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
                   </p>
                 </div>
                 <p style={{ fontSize: 14, fontWeight: 800, color: f.diasRestantes < 0 ? "var(--danger)" : "var(--dark)", margin: 0 }}>{fmt(f.montoEstimado)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* AHORRO */}
-      {metasActivas.length > 0 && (
-        <div style={{ background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1.5px solid var(--primary-soft)", boxShadow: "var(--shadow)" }}>
-          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--primary-deep)", marginBottom: 12 }}>🎯 Ahorro total</p>
-          <p style={{ fontSize: 20, fontWeight: 800, color: "var(--primary-deep)", marginBottom: metaMasCercaCumplir ? 10 : 0 }}>{fmt(totalAhorrado)}</p>
-          {metaMasCercaCumplir && (
-            <>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: "var(--mid)" }}>{metaMasCercaCumplir.nombre}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--primary-deep)" }}>{metaMasCercaCumplir.pct}%</span>
-              </div>
-              <ProgressBar pct={metaMasCercaCumplir.pct} color="var(--primary)" bg="var(--bg)" height={8} />
-            </>
-          )}
-        </div>
-      )}
-
-      {/* PRESUPUESTOS EN RIESGO */}
-      {presupuestosEnRiesgo.length > 0 && (
-        <div style={{ background: "var(--white)", borderRadius: 20, padding: "18px 20px", border: "1.5px solid var(--warn-border)", boxShadow: "var(--shadow)" }}>
-          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--warn)", marginBottom: 12 }}>⚠️ Presupuestos cerca del límite</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {presupuestosEnRiesgo.map(p => (
-              <div key={p.id}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)" }}>{p.categoria}</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: p.pct >= 100 ? "var(--danger)" : "var(--warn)" }}>{p.pct}%</span>
-                </div>
-                <ProgressBar pct={p.pct} color={p.pct >= 100 ? "var(--danger)" : "var(--warn)"} bg="var(--bg)" height={8} />
               </div>
             ))}
           </div>

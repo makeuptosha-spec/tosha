@@ -1,13 +1,16 @@
 import { useState, useRef } from "react";
-import { fmt, fmtNum, parseNum, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, iconoCuenta, limpiarRespuestaIA } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, iconoCuenta, limpiarRespuestaIA } from "../utils.jsx";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
-const PROMPT = (texto) => `Eres un extractor de datos para una app de finanzas personales en Colombia.
+const construirPrompt = (texto, categorias) => {
+  const gasto = categorias.filter(c => c.tipo === "gasto").map(c => c.nombre).join(", ");
+  const ingreso = categorias.filter(c => c.tipo === "ingreso").map(c => c.nombre).join(", ");
+  return `Eres un extractor de datos para una app de finanzas personales en Colombia.
 El usuario dictó por voz esta frase describiendo un movimiento de dinero: "${texto}"
 
-Categorías de GASTO válidas: ${CATEGORIAS_GASTO.join(", ")}.
-Categorías de INGRESO válidas: ${CATEGORIAS_INGRESO.join(", ")}.
+Categorías de GASTO válidas: ${gasto}.
+Categorías de INGRESO válidas: ${ingreso}.
 
 Responde ÚNICAMENTE con un JSON, sin texto adicional, sin markdown:
 {
@@ -23,8 +26,9 @@ Reglas:
 - categoria: la más cercana de la lista correspondiente al tipo
 - Si no hay certeza del monto usa null
 - NADA fuera del JSON`;
+};
 
-async function interpretarConGroq(texto) {
+async function interpretarConGroq(texto, categorias) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { "content-type": "application/json", "authorization": `Bearer ${GROQ_KEY}` },
@@ -32,7 +36,7 @@ async function interpretarConGroq(texto) {
       model: "llama-3.3-70b-versatile",
       temperature: 0.1,
       max_tokens: 256,
-      messages: [{ role: "user", content: PROMPT(texto) }]
+      messages: [{ role: "user", content: construirPrompt(texto, categorias) }]
     })
   });
   if (!res.ok) { const err = await res.json(); throw new Error(err.error?.message || `HTTP ${res.status}`); }
@@ -46,7 +50,7 @@ async function interpretarConGroq(texto) {
 
 const SpeechRecognitionAPI = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
 
-export default function DictarMovimiento({ cuentas, onGuardar, onClose }) {
+export default function DictarMovimiento({ cuentas, categorias, onGuardar, onClose }) {
   const [estado, setEstado] = useState(SpeechRecognitionAPI ? "idle" : "no-soportado");
   const [transcript, setTranscript] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -85,8 +89,8 @@ export default function DictarMovimiento({ cuentas, onGuardar, onClose }) {
     if (!GROQ_KEY) { setEstado("error"); setErrorMsg("Falta VITE_GROQ_API_KEY."); return; }
     setEstado("procesando");
     try {
-      const crudo = await interpretarConGroq(texto);
-      const limpio = limpiarRespuestaIA(crudo);
+      const crudo = await interpretarConGroq(texto, categorias);
+      const limpio = limpiarRespuestaIA(crudo, categorias);
       if (!limpio.monto) throw new Error("No entendí el monto, intenta de nuevo siendo más específico");
       setResultado({ tipo: limpio.tipo, monto: limpio.monto, categoria: limpio.categoriaSugerida, descripcion: limpio.descripcion });
       setEstado("confirmar");

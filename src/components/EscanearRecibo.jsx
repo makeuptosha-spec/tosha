@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO, HOGAR_ID, hoyLocal, limpiarRespuestaIA } from "../utils.jsx";
+import { HOGAR_ID, hoyLocal, limpiarRespuestaIA } from "../utils.jsx";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
-const PROMPT = `Eres un extractor de datos para recibos, facturas y comprobantes de movimientos financieros personales en Colombia.
+const construirPrompt = (categorias) => {
+  const gasto = categorias.filter(c => c.tipo === "gasto").map(c => c.nombre).join(", ");
+  const ingreso = categorias.filter(c => c.tipo === "ingreso").map(c => c.nombre).join(", ");
+  return `Eres un extractor de datos para recibos, facturas y comprobantes de movimientos financieros personales en Colombia.
 Analiza esta imagen y extrae la información del movimiento. Puede ser un GASTO (compra, pago, factura) o un INGRESO (pago recibido, consignación, transferencia recibida, comprobante de salario).
 
-Categorías de gasto válidas: ${CATEGORIAS_GASTO.join(", ")}.
-Categorías de ingreso válidas: ${CATEGORIAS_INGRESO.join(", ")}.
+Categorías de gasto válidas: ${gasto}.
+Categorías de ingreso válidas: ${ingreso}.
 
 Responde ÚNICAMENTE con un JSON, sin texto adicional, sin markdown:
 {
@@ -28,6 +31,7 @@ Reglas:
 - categoriaSugerida: EXACTAMENTE una categoría de la lista que corresponda al tipo elegido
 - Si no puedes leer un campo con certeza usa null
 - NADA fuera del JSON`;
+};
 
 async function imagenABase64(file) {
   return new Promise((resolve, reject) => {
@@ -55,7 +59,7 @@ async function pdfPaginaABase64(file) {
   return canvas.toDataURL("image/png").split(",")[1];
 }
 
-async function llamarGroq(base64, mediaType = "image/png") {
+async function llamarGroq(base64, mediaType, categorias) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -71,7 +75,7 @@ async function llamarGroq(base64, mediaType = "image/png") {
         role: "user",
         content: [
           { type: "image_url", image_url: { url: `data:${mediaType};base64,${base64}` } },
-          { type: "text", text: PROMPT }
+          { type: "text", text: construirPrompt(categorias) }
         ]
       }]
     })
@@ -91,7 +95,7 @@ async function llamarGroq(base64, mediaType = "image/png") {
   return JSON.parse(jsonStr);
 }
 
-export default function EscanearRecibo({ onBorradorCreado, onClose }) {
+export default function EscanearRecibo({ categorias, onBorradorCreado, onClose }) {
   const [estado, setEstado]   = useState("idle");
   const [progreso, setProgreso] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -118,8 +122,8 @@ export default function EscanearRecibo({ onBorradorCreado, onClose }) {
       }
 
       setProgreso("Analizando recibo con IA…");
-      const crudo = await llamarGroq(base64, mediaType);
-      const datos = limpiarRespuestaIA(crudo);
+      const crudo = await llamarGroq(base64, mediaType, categorias);
+      const datos = limpiarRespuestaIA(crudo, categorias);
       if (!datos.monto) throw new Error("No se pudo leer el monto del recibo");
 
       await addDoc(collection(db, "borradores"), {

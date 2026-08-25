@@ -2,20 +2,21 @@ import { useState, useEffect } from "react";
 import { auth } from "./firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
-import { LoaderInteractivo, Icon, globalStyles, fetchPropio, initTema, useTema } from "./utils.jsx";
+import { LoaderInteractivo, Icon, globalStyles, fetchPropio, initTema, useTema, asegurarCategorias, sincronizarConfiguracion, useMoneda } from "./utils.jsx";
 import LoginScreen from "./components/LoginScreen.jsx";
 import SignupScreen from "./components/SignupScreen.jsx";
 import Inicio from "./components/Inicio.jsx";
 import Movimientos from "./components/Movimientos.jsx";
 import Cuentas from "./components/Cuentas.jsx";
 import Facturas from "./components/Facturas.jsx";
-import Presupuestos from "./components/Presupuestos.jsx";
+import Conf from "./components/Conf.jsx";
 import Usuarios from "./components/Usuarios.jsx";
 
 initTema();
 
 export default function App() {
   const [tema, toggleTema] = useTema();
+  useMoneda();
   const [usuario, setUsuario] = useState(undefined);
   const [vistaAuth, setVistaAuth] = useState("login");
   const [tab, setTab] = useState("inicio");
@@ -25,9 +26,8 @@ export default function App() {
   const [movimientos, setMovimientos] = useState([]);
   const [facturasRecurrentes, setFacturasRecurrentes] = useState([]);
   const [pagosFactura, setPagosFactura] = useState([]);
-  const [presupuestos, setPresupuestos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [deudas, setDeudas] = useState([]);
-  const [metas, setMetas] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -41,22 +41,21 @@ export default function App() {
     const fetchData = async () => {
       try {
         const uid = usuario.uid;
-        const [cuentasP, movP, facP, pagosP, presP, deudasP, metasP] = await Promise.all([
+        const [cuentasP, movP, facP, pagosP, deudasP, categoriasP] = await Promise.all([
           fetchPropio("cuentas", uid),
           fetchPropio("movimientos", uid),
           fetchPropio("facturasRecurrentes", uid),
           fetchPropio("pagosFactura", uid),
-          fetchPropio("presupuestos", uid),
           fetchPropio("deudas", uid),
-          fetchPropio("metas", uid),
+          asegurarCategorias(uid),
+          sincronizarConfiguracion(uid),
         ]);
         setCuentas(cuentasP);
         setMovimientos(movP);
         setFacturasRecurrentes(facP);
         setPagosFactura(pagosP);
-        setPresupuestos(presP);
         setDeudas(deudasP);
-        setMetas(metasP);
+        setCategorias(categoriasP);
       } catch (error) {
         console.error(error);
         if (error.code === "permission-denied") setNoAutorizado(true);
@@ -71,7 +70,7 @@ export default function App() {
     { id: "movimientos", label: "Movimientos", icon: "chart" },
     { id: "cuentas", label: "Cuentas", icon: "wallet" },
     { id: "facturas", label: "Facturas", icon: "receipt" },
-    { id: "presupuestos", label: "Metas", icon: "target" },
+    { id: "conf", label: "Conf", icon: "settings" },
   ];
 
   if (usuario === undefined) return <><style>{globalStyles}</style><div style={{ minHeight: '100vh', background: 'var(--bg)' }} /></>;
@@ -127,11 +126,11 @@ export default function App() {
             </div>
           </div>
 
-          {tab === "inicio" && <Inicio cuentas={cuentas} movimientos={movimientos} facturasRecurrentes={facturasRecurrentes} pagosFactura={pagosFactura} presupuestos={presupuestos} deudas={deudas} metas={metas} />}
-          {tab === "movimientos" && <Movimientos movimientos={movimientos} setMovimientos={setMovimientos} cuentas={cuentas} />}
+          {tab === "inicio" && <Inicio cuentas={cuentas} movimientos={movimientos} facturasRecurrentes={facturasRecurrentes} pagosFactura={pagosFactura} deudas={deudas} />}
+          {tab === "movimientos" && <Movimientos movimientos={movimientos} setMovimientos={setMovimientos} cuentas={cuentas} categorias={categorias} />}
           {tab === "cuentas" && <Cuentas cuentas={cuentas} setCuentas={setCuentas} movimientos={movimientos} setMovimientos={setMovimientos} />}
-          {tab === "facturas" && <Facturas facturasRecurrentes={facturasRecurrentes} setFacturasRecurrentes={setFacturasRecurrentes} pagosFactura={pagosFactura} setPagosFactura={setPagosFactura} setMovimientos={setMovimientos} cuentas={cuentas} deudas={deudas} setDeudas={setDeudas} />}
-          {tab === "presupuestos" && <Presupuestos presupuestos={presupuestos} setPresupuestos={setPresupuestos} movimientos={movimientos} metas={metas} setMetas={setMetas} cuentas={cuentas} setMovimientos={setMovimientos} />}
+          {tab === "facturas" && <Facturas facturasRecurrentes={facturasRecurrentes} setFacturasRecurrentes={setFacturasRecurrentes} pagosFactura={pagosFactura} setPagosFactura={setPagosFactura} setMovimientos={setMovimientos} cuentas={cuentas} deudas={deudas} setDeudas={setDeudas} categorias={categorias} />}
+          {tab === "conf" && <Conf categorias={categorias} setCategorias={setCategorias} />}
         </div>
 
         <nav className="nav-menu no-print">
