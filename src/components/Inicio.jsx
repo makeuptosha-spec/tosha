@@ -82,7 +82,7 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
   );
 
   const balanceTotal = useMemo(() =>
-    cuentasConSaldo.reduce((s, c) => s + c.saldo, 0),
+    cuentasConSaldo.filter(c => c.tipo !== "tarjeta_credito").reduce((s, c) => s + c.saldo, 0),
     [cuentasConSaldo]
   );
 
