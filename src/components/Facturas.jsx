@@ -92,9 +92,9 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
     }
     return meses.map(mes => ({
       mes, label: fmtMesCorto(mes),
-      total: pagosFactura.filter(p => p.pagado && p.mes === mes).reduce((s, p) => s + Number(p.montoPagado ?? 0), 0)
+      total: mes === mesActual() ? totalMes : pagosFactura.filter(p => p.pagado && p.mes === mes).reduce((s, p) => s + Number(p.montoPagado ?? 0), 0)
     }));
-  }, [pagosFactura]);
+  }, [pagosFactura, totalMes]);
 
   const totalMesActual = historico[historico.length - 1]?.total || 0;
   const totalMesAnterior = historico[historico.length - 2]?.total || 0;
