@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "./firebase.js";
-import { collection, getDocs, query, where, doc, getDoc, setDoc, writeBatch } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, where, doc, getDoc, setDoc, writeBatch } from "firebase/firestore";
 
 // ── TEMA (claro/oscuro) ──
 const TEMA_KEY = "tosha-tema";
@@ -239,6 +239,31 @@ export const mesActual = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
+
+export const mesAnterior = () => {
+  const d = new Date();
+  const m = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+  return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, "0")}`;
+};
+
+// Si una factura activa no tiene ya un pagosFactura para el mes anterior
+// (pagada o no), congela su montoEstimado vigente en uno con pagado:false.
+// Corre una vez por sesion, antes de que el usuario pueda editar nada, para
+// que un monto variable no se pierda al pisarse con el del mes nuevo.
+export async function congelarEstimadosMesAnterior(uid, facturasRecurrentes, pagosFactura) {
+  const mesAnt = mesAnterior();
+  const inicioMesActual = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+  const nuevas = [];
+  for (const f of facturasRecurrentes) {
+    if (f.activa === false) continue;
+    if (new Date(f.fechaCreacion) >= inicioMesActual) continue;
+    if (pagosFactura.some(p => p.facturaRecurrenteId === f.id && p.mes === mesAnt)) continue;
+    const datos = { facturaRecurrenteId: f.id, mes: mesAnt, pagado: false, montoPagado: Number(f.montoEstimado), movimientoId: null, hogarId: HOGAR_ID, uid };
+    const ref = await addDoc(collection(db, "pagosFactura"), datos);
+    nuevas.push({ id: ref.id, ...datos });
+  }
+  return nuevas;
+}
 
 // "YYYY-MM-DD" de HOY en hora local — new Date().toISOString().slice(0,10)
 // da la fecha en UTC, que en Colombia (UTC-5) ya cae en "mañana" de noche.

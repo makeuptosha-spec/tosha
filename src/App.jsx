@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { auth } from "./firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
-import { LoaderInteractivo, Icon, globalStyles, fetchPropio, initTema, useTema, asegurarCategorias, sincronizarConfiguracion, useMoneda } from "./utils.jsx";
+import { LoaderInteractivo, Icon, globalStyles, fetchPropio, initTema, useTema, asegurarCategorias, sincronizarConfiguracion, useMoneda, congelarEstimadosMesAnterior } from "./utils.jsx";
 import LoginScreen from "./components/LoginScreen.jsx";
 import SignupScreen from "./components/SignupScreen.jsx";
 import Inicio from "./components/Inicio.jsx";
@@ -50,10 +50,11 @@ export default function App() {
           asegurarCategorias(uid),
           sincronizarConfiguracion(uid),
         ]);
+        const pagosCongelados = await congelarEstimadosMesAnterior(uid, facP, pagosP);
         setCuentas(cuentasP);
         setMovimientos(movP);
         setFacturasRecurrentes(facP);
-        setPagosFactura(pagosP);
+        setPagosFactura([...pagosP, ...pagosCongelados]);
         setDeudas(deudasP);
         setCategorias(categoriasP);
       } catch (error) {
