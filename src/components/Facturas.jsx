@@ -35,7 +35,7 @@ const TooltipHistorico = ({ active, payload, label }) => {
   );
 };
 
-const GraficaHistorico = ({ data }) => {
+const GraficaHistorico = ({ data, mesSeleccionado, onSelectMes }) => {
   const [tema] = useTema();
   const c = colorTema(tema);
   return (
@@ -46,8 +46,8 @@ const GraficaHistorico = ({ data }) => {
           <XAxis dataKey="label" tick={{ fontSize: 11, fill: c.texto, textTransform: "capitalize" }} axisLine={{ stroke: c.grid }} tickLine={false} />
           <YAxis width={0} tick={false} axisLine={false} tickLine={false} />
           <Tooltip content={<TooltipHistorico />} cursor={{ fill: "var(--primary-pale)" }} />
-          <Bar dataKey="total" radius={[6, 6, 0, 0]}>
-            {data.map((d, i) => <Cell key={d.mes} fill={i === data.length - 1 ? "var(--accent)" : "var(--primary-soft)"} />)}
+          <Bar dataKey="total" radius={[6, 6, 0, 0]} onClick={(d) => onSelectMes?.(d.mes)} cursor="pointer">
+            {data.map((d, i) => <Cell key={d.mes} fill={d.mes === mesSeleccionado ? "var(--primary-deep)" : i === data.length - 1 ? "var(--accent)" : "var(--primary-soft)"} />)}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -65,6 +65,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
   const [cuentaPago, setCuentaPago] = useState("");
   const [yaPagado, setYaPagado] = useState(false);
   const [guardandoPago, setGuardandoPago] = useState(false);
+  const [mesDetalle, setMesDetalle] = useState(null);
   const [toast, setToast] = useState(null);
 
   const formBase = { nombre: "", montoEstimado: "", categoria: "", cuentaId: "", diaVencimiento: "1", codigoReferencia: "", urlPago: "" };
@@ -95,6 +96,17 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
       total: mes === mesActual() ? totalMes : pagosFactura.filter(p => p.pagado && p.mes === mes).reduce((s, p) => s + Number(p.montoPagado ?? 0), 0)
     }));
   }, [pagosFactura, totalMes]);
+
+  const detalleMes = useMemo(() => {
+    if (!mesDetalle) return [];
+    if (mesDetalle === mesActual()) {
+      return facturasConEstado.map(f => ({ id: f.id, nombre: f.nombre, monto: Number(f.montoEstimado), pagada: f.estado === "pagada" }));
+    }
+    return pagosFactura
+      .filter(p => p.mes === mesDetalle)
+      .map(p => ({ id: p.id, nombre: facturasRecurrentes.find(f => f.id === p.facturaRecurrenteId)?.nombre || "Factura eliminada", monto: Number(p.montoPagado), pagada: !!p.pagado }))
+      .sort((a, b) => b.monto - a.monto);
+  }, [mesDetalle, facturasConEstado, pagosFactura, facturasRecurrentes]);
 
   const totalMesActual = historico[historico.length - 1]?.total || 0;
   const totalMesAnterior = historico[historico.length - 2]?.total || 0;
@@ -246,7 +258,29 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
             )}
           </div>
           <p style={{ fontSize: 11, color: "var(--mid)", marginTop: 2 }}>Este mes: <strong style={{ color: "var(--dark)" }}>{fmt(totalMesActual)}</strong> · Mes anterior: <strong style={{ color: "var(--dark)" }}>{fmt(totalMesAnterior)}</strong></p>
-          <GraficaHistorico data={historico} />
+          <GraficaHistorico data={historico} mesSeleccionado={mesDetalle} onSelectMes={(mes) => setMesDetalle(m => m === mes ? null : mes)} />
+          <p style={{ fontSize: 10, color: "var(--mid)", marginTop: 4, textAlign: "center" }}>Toca una barra pa ver el detalle</p>
+
+          {mesDetalle && (
+            <div className="animate" style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", textTransform: "capitalize" }}>Detalle {fmtMesCorto(mesDetalle)}</p>
+                <button onClick={() => setMesDetalle(null)} style={{ background: "var(--bg)", border: "none", borderRadius: 8, width: 24, height: 24, color: "var(--mid)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={12} /></button>
+              </div>
+              {detalleMes.length === 0 && <p style={{ fontSize: 12, color: "var(--mid)" }}>Sin facturas registradas ese mes.</p>}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {detalleMes.map(d => (
+                  <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, padding: "6px 0" }}>
+                    <span style={{ color: "var(--dark)", display: "flex", alignItems: "center", gap: 6 }}>
+                      {d.nombre}
+                      {!d.pagada && <span style={{ fontSize: 10, background: "var(--warn-bg)", color: "var(--warn)", padding: "1px 7px", borderRadius: 20, fontWeight: 700 }}>No pagada</span>}
+                    </span>
+                    <span style={{ fontWeight: 700, color: "var(--dark)" }}>{fmt(d.monto)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
