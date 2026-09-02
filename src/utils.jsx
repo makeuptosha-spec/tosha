@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "./firebase.js";
-import { collection, getDocs, addDoc, query, where, doc, getDoc, setDoc, writeBatch } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, query, where, doc, getDoc, setDoc, writeBatch } from "firebase/firestore";
 
 // ── TEMA (claro/oscuro) ──
 const TEMA_KEY = "tosha-tema";
@@ -240,27 +240,41 @@ export const mesActual = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 
-export const mesAnterior = () => {
-  const d = new Date();
-  const m = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-  return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, "0")}`;
+const sumarMes = (mesStr, n) => {
+  const [y, m] = mesStr.split("-").map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 
-// Si una factura activa no tiene ya un pagosFactura para el mes anterior
-// (pagada o no), congela su montoEstimado vigente en uno con pagado:false.
-// Corre una vez por sesion, antes de que el usuario pueda editar nada, para
-// que un monto variable no se pierda al pisarse con el del mes nuevo.
-export async function congelarEstimadosMesAnterior(uid, facturasRecurrentes, pagosFactura) {
-  const mesAnt = mesAnterior();
-  const inicioMesActual = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+// Cada factura recurrente sabe, en `montoEstimadoMes`, a que mes pertenece
+// su `montoEstimado` vigente (se fija en cada edicion/pago, Facturas.jsx).
+// Si quedaron meses saltados entre ese periodo y el actual (la app no se
+// abrio, o el campo no existia todavia en facturas viejas), esta funcion
+// congela cada uno en un pagosFactura con pagado:false usando el monto
+// vigente al momento de la sincronizacion (no se puede recuperar un valor
+// distinto para cada mes salteado si ya se sobreescribio antes de este
+// mecanismo). Corre una vez por sesion, antes de que el usuario edite nada.
+export async function sincronizarEstimadosFacturas(uid, facturasRecurrentes, pagosFactura) {
+  const hoy = mesActual();
   const nuevas = [];
   for (const f of facturasRecurrentes) {
     if (f.activa === false) continue;
-    if (new Date(f.fechaCreacion) >= inicioMesActual) continue;
-    if (pagosFactura.some(p => p.facturaRecurrenteId === f.id && p.mes === mesAnt)) continue;
-    const datos = { facturaRecurrenteId: f.id, mes: mesAnt, pagado: false, montoPagado: Number(f.montoEstimado), movimientoId: null, hogarId: HOGAR_ID, uid };
-    const ref = await addDoc(collection(db, "pagosFactura"), datos);
-    nuevas.push({ id: ref.id, ...datos });
+    const dCreacion = new Date(f.fechaCreacion);
+    const mesCreacion = `${dCreacion.getFullYear()}-${String(dCreacion.getMonth() + 1).padStart(2, "0")}`;
+    let periodo = f.montoEstimadoMes || mesCreacion;
+    while (periodo < hoy) {
+      const siguiente = sumarMes(periodo, 1);
+      if (siguiente >= hoy) break;
+      if (!pagosFactura.some(p => p.facturaRecurrenteId === f.id && p.mes === siguiente)) {
+        const datos = { facturaRecurrenteId: f.id, mes: siguiente, pagado: false, montoPagado: Number(f.montoEstimado), movimientoId: null, hogarId: HOGAR_ID, uid };
+        const ref = await addDoc(collection(db, "pagosFactura"), datos);
+        nuevas.push({ id: ref.id, ...datos });
+      }
+      periodo = siguiente;
+    }
+    if (f.montoEstimadoMes !== hoy) {
+      await updateDoc(doc(db, "facturasRecurrentes", f.id), { montoEstimadoMes: hoy });
+    }
   }
   return nuevas;
 }

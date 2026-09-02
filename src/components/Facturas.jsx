@@ -116,7 +116,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
   const guardar = async () => {
     if (!form.nombre || !form.montoEstimado || !form.categoria || !form.cuentaId || !form.diaVencimiento) return showToast("⚠️ Completa todos los campos", "warn");
     const datos = {
-      nombre: form.nombre, montoEstimado: Number(form.montoEstimado), categoria: form.categoria,
+      nombre: form.nombre, montoEstimado: Number(form.montoEstimado), montoEstimadoMes: mesActual(), categoria: form.categoria,
       cuentaId: form.cuentaId, diaVencimiento: Number(form.diaVencimiento), codigoReferencia: form.codigoReferencia || null,
       urlPago: form.urlPago || null,
       activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
@@ -199,8 +199,8 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
       setPagosFactura(p => [{ id: pagoRef.id, ...nuevoPago }, ...p]);
 
       if (Number(montoPago) !== Number(pagando.montoEstimado)) {
-        await updateDoc(doc(db, "facturasRecurrentes", pagando.id), { montoEstimado: Number(montoPago) });
-        setFacturasRecurrentes(f => f.map(x => x.id === pagando.id ? { ...x, montoEstimado: Number(montoPago) } : x));
+        await updateDoc(doc(db, "facturasRecurrentes", pagando.id), { montoEstimado: Number(montoPago), montoEstimadoMes: mesActual() });
+        setFacturasRecurrentes(f => f.map(x => x.id === pagando.id ? { ...x, montoEstimado: Number(montoPago), montoEstimadoMes: mesActual() } : x));
       }
 
       showToast(gmf ? `✅ ${pagando.nombre} marcada como pagada (+${fmt(gmf)} de 4x1000)` : `✅ ${pagando.nombre} marcada como pagada`);
