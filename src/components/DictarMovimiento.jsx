@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { fmt, fmtNum, parseNum, iconoCuenta, limpiarRespuestaIA } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, iconoCuenta, limpiarRespuestaIA, GROQ_MODELO_TEXTO } from "../utils.jsx";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
@@ -33,7 +33,7 @@ async function interpretarConGroq(texto, categorias) {
     method: "POST",
     headers: { "content-type": "application/json", "authorization": `Bearer ${GROQ_KEY}` },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODELO_TEXTO,
       temperature: 0.1,
       max_tokens: 256,
       messages: [{ role: "user", content: construirPrompt(texto, categorias) }]

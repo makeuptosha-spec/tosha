@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { HOGAR_ID, hoyLocal, limpiarRespuestaIA } from "../utils.jsx";
+import { HOGAR_ID, hoyLocal, limpiarRespuestaIA, GROQ_MODELO_VISION } from "../utils.jsx";
 
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
@@ -67,7 +67,7 @@ async function llamarGroq(base64, mediaType, categorias) {
       "authorization": `Bearer ${GROQ_KEY}`
     },
     body: JSON.stringify({
-      model: "qwen/qwen3.6-27b",
+      model: GROQ_MODELO_VISION,
       temperature: 0.1,
       max_tokens: 768,
       reasoning_effort: "none",
@@ -87,8 +87,10 @@ async function llamarGroq(base64, mediaType, categorias) {
   const data = await res.json();
   let texto = data.choices?.[0]?.message?.content?.trim();
   if (!texto) throw new Error("Groq no devolvió respuesta");
-  // qwen3.6 es modelo de razonamiento: antepone un bloque <think>...</think>
-  // con su análisis antes de la respuesta real — hay que descartarlo.
+  // El modelo de visión es de razonamiento: puede anteponer un bloque
+  // <think>...</think> con su análisis antes de la respuesta real — hay que
+  // descartarlo. También puede envolver el JSON en ```json … ```, lo cubre
+  // el match de llaves de abajo.
   texto = texto.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
   const jsonStr = texto.startsWith("{") ? texto : texto.match(/\{[\s\S]*\}/)?.[0];
   if (!jsonStr) throw new Error("La IA no devolvió JSON válido");

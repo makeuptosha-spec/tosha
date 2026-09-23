@@ -11,9 +11,10 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
   const [montoAbono, setMontoAbono] = useState("");
   const [cuentaAbono, setCuentaAbono] = useState("");
   const [guardandoAbono, setGuardandoAbono] = useState(false);
+  const [guardandoDeuda, setGuardandoDeuda] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const formBase = { nombre: "", tipo: "debo", montoPrincipal: "", tasaInteresAnual: "", cuotaMensual: "", cuentaId: "" };
+  const formBase = { nombre: "", tipo: "debo", montoPrincipal: "", tasaInteresAnual: "", cuotaMensual: "", cuentaId: "", afectaSaldo: true };
   const [form, setForm] = useState(formBase);
 
   const showToast = (msg, tipo = "ok") => { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); };
@@ -30,8 +31,24 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
   const totalDebo = deudasConProgreso.filter(d => d.tipo === "debo").reduce((s, d) => s + Number(d.saldoRestante), 0);
   const totalMeDeben = deudasConProgreso.filter(d => d.tipo === "me_deben").reduce((s, d) => s + Number(d.saldoRestante), 0);
 
+  // Forma del movimiento que representa el desembolso: "yo debo" = la plata
+  // entró a la cuenta (ingreso); "me deben" = salió (gasto, y paga 4x1000 si
+  // la cuenta está gravada). Se usa igual al crear y al editar, así un cambio
+  // de tipo o de cuenta reescribe el movimiento completo sin casos sueltos.
+  const movimientoOrigen = (f, monto) => {
+    const esDebo = f.tipo === "debo";
+    return {
+      tipo: esDebo ? "ingreso" : "gasto",
+      cuentaId: f.cuentaId,
+      descripcion: `${esDebo ? "Préstamo recibido" : "Préstamo otorgado"}: ${f.nombre}`,
+      gmf4x1000: esDebo ? 0 : calcular4x1000(cuentas.find(c => c.id === f.cuentaId), monto)
+    };
+  };
+
   const guardar = async () => {
     if (!form.nombre || !form.montoPrincipal || !form.cuentaId) return showToast("⚠️ Completa nombre, capital y cuenta", "warn");
+    if (guardandoDeuda) return;
+    setGuardandoDeuda(true);
     const datos = {
       nombre: form.nombre, tipo: form.tipo, montoPrincipal: Number(form.montoPrincipal),
       tasaInteresAnual: form.tasaInteresAnual ? Number(form.tasaInteresAnual) : null,
@@ -40,23 +57,51 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
     };
     try {
       if (editandoId) {
+        const original = deudas.find(d => d.id === editandoId);
         await updateDoc(doc(db, "deudas", editandoId), datos);
         setDeudas(d => d.map(x => x.id === editandoId ? { ...x, ...datos } : x));
+        // El movimiento del desembolso apunta a la cuenta y al tipo elegidos
+        // al crear. Si acá se cambia cualquiera de los dos, hay que moverlo
+        // también: si no, el saldo se queda descontado de la cuenta vieja.
+        if (original?.movimientoOrigenId) {
+          const cambios = movimientoOrigen(form, Number(original.montoPrincipal));
+          await updateDoc(doc(db, "movimientos", original.movimientoOrigenId), cambios);
+          setMovimientos(m => m.map(x => x.id === original.movimientoOrigenId ? { ...x, ...cambios } : x));
+        }
         showToast("✅ Actualizado");
       } else {
         datos.saldoRestante = Number(form.montoPrincipal);
         datos.historialPagos = [];
         datos.fechaCreacion = new Date().toISOString();
         const ref = await addDoc(collection(db, "deudas"), datos);
+
+        // Prestar o recibir un préstamo mueve plata de verdad: hasta ahora
+        // solo se guardaba la cuenta como etiqueta y el saldo nunca se
+        // tocaba. El movimiento va aparte (categoría "Préstamo") para que
+        // Cuentas/Inicio lo descuenten igual que cualquier otro gasto.
+        if (form.afectaSaldo) {
+          const mov = {
+            ...movimientoOrigen(form, Number(form.montoPrincipal)),
+            monto: Number(form.montoPrincipal), categoria: "Préstamo",
+            fecha: datos.fechaCreacion, deudaId: ref.id, esOrigenDeuda: true,
+            hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: datos.fechaCreacion
+          };
+          const movRef = await addDoc(collection(db, "movimientos"), mov);
+          await updateDoc(doc(db, "deudas", ref.id), { movimientoOrigenId: movRef.id });
+          datos.movimientoOrigenId = movRef.id;
+          setMovimientos(m => [{ id: movRef.id, ...mov }, ...m]);
+        }
+
         setDeudas(d => [{ id: ref.id, ...datos }, ...d]);
         showToast("✅ Registrado");
       }
       setForm(formBase); setEditandoId(null); setMostrarForm(false);
     } catch { showToast("❌ Error al guardar", "danger"); }
+    finally { setGuardandoDeuda(false); }
   };
 
   const abrirEdicion = (d) => {
-    setForm({ nombre: d.nombre, tipo: d.tipo, montoPrincipal: String(d.montoPrincipal), tasaInteresAnual: d.tasaInteresAnual ? String(d.tasaInteresAnual) : "", cuotaMensual: d.cuotaMensual ? String(d.cuotaMensual) : "", cuentaId: d.cuentaId });
+    setForm({ nombre: d.nombre, tipo: d.tipo, montoPrincipal: String(d.montoPrincipal), tasaInteresAnual: d.tasaInteresAnual ? String(d.tasaInteresAnual) : "", cuotaMensual: d.cuotaMensual ? String(d.cuotaMensual) : "", cuentaId: d.cuentaId, afectaSaldo: !!d.movimientoOrigenId });
     setEditandoId(d.id); setMostrarForm(true);
   };
 
@@ -64,6 +109,13 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
     if (!deudaAEliminar) return;
     try {
       await deleteDoc(doc(db, "deudas", deudaAEliminar.id));
+      // El movimiento del desembolso existe solo por este registro: dejarlo
+      // huérfano sería descontar de la cuenta un préstamo que ya no está.
+      // Los abonos sí se quedan: esos son pagos reales que ya ocurrieron.
+      if (deudaAEliminar.movimientoOrigenId) {
+        await deleteDoc(doc(db, "movimientos", deudaAEliminar.movimientoOrigenId));
+        setMovimientos(m => m.filter(x => x.id !== deudaAEliminar.movimientoOrigenId));
+      }
       setDeudas(d => d.filter(x => x.id !== deudaAEliminar.id));
       setDeudaAEliminar(null);
       showToast("🗑️ Eliminado");
@@ -158,8 +210,25 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
               <input type="text" value={form.cuotaMensual ? fmtNum(form.cuotaMensual) : ""} onChange={e => setForm({ ...form, cuotaMensual: parseNum(e.target.value) })} />
             </div>
           </div>
-          <button onClick={guardar} style={{ background: "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontWeight: 700, fontSize: 14 }}>
-            {editandoId ? "Actualizar" : "Guardar"}
+          {!editandoId && (
+            <div onClick={() => setForm(f => ({ ...f, afectaSaldo: !f.afectaSaldo }))} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "var(--bg)", padding: "12px 14px", borderRadius: 14, border: "1px solid var(--border)", cursor: "pointer" }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: 0 }}>
+                  {form.tipo === "debo" ? "La plata entra hoy a la cuenta" : "La plata sale hoy de la cuenta"}
+                </p>
+                <p style={{ fontSize: 11, color: "var(--mid)", margin: "2px 0 0" }}>
+                  {form.tipo === "debo"
+                    ? "Crea un ingreso por el capital en la cuenta elegida. Desmárcalo si el préstamo ya entró antes y el movimiento está registrado."
+                    : "Crea un gasto por el capital en la cuenta elegida (con 4x1000 si aplica). Desmárcalo si ya le prestaste antes y el movimiento está registrado."}
+                </p>
+              </div>
+              <div style={{ flexShrink: 0, width: 44, height: 26, borderRadius: 100, padding: 3, background: form.afectaSaldo ? "linear-gradient(135deg, var(--primary-deep), var(--primary))" : "#A8BDB4", transition: "background 0.2s" }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "var(--shadow)", transform: form.afectaSaldo ? "translateX(18px)" : "translateX(0)", transition: "transform 0.2s" }} />
+              </div>
+            </div>
+          )}
+          <button onClick={guardar} disabled={guardandoDeuda} style={{ background: "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontWeight: 700, fontSize: 14, opacity: guardandoDeuda ? 0.6 : 1 }}>
+            {guardandoDeuda ? "Guardando…" : editandoId ? "Actualizar" : "Guardar"}
           </button>
         </div>
       )}

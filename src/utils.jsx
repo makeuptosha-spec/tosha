@@ -108,6 +108,15 @@ export async function fetchPropio(nombreColeccion, uid) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+// ── MODELOS DE IA (Groq) ──
+// Centralizados acá porque Groq retira modelos viejos sin aviso: cuando el
+// escaneo de recibos o el dictado empiecen a fallar con "model ... does not
+// exist", se pide la lista viva a GET https://api.groq.com/openai/v1/models
+// y se reemplaza solo este par de constantes, no cada componente.
+// El de visión debe aceptar bloques `image_url`; el de texto no hace falta.
+export const GROQ_MODELO_VISION = "qwen/qwen3.8-27b";
+export const GROQ_MODELO_TEXTO = "openai/gpt-oss-120b";
+
 // ── CATEGORÍAS ──
 // Ya no son un array fijo: viven en Firestore (colección `categorias`,
 // editable desde el tab Conf) para que el usuario las personalice. Estos
