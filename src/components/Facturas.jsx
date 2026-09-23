@@ -55,7 +55,7 @@ const GraficaHistorico = ({ data, mesSeleccionado, onSelectMes }) => {
   );
 };
 
-export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, pagosFactura, setPagosFactura, setMovimientos, cuentas, deudas, setDeudas, categorias }) {
+export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, pagosFactura, setPagosFactura, movimientos, setMovimientos, cuentas, deudas, setDeudas, categorias }) {
   const [vista, setVista] = useState("fijas");
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
@@ -220,7 +220,7 @@ export default function Facturas({ facturasRecurrentes, setFacturasRecurrentes, 
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {toggleBar}
-        <Deudas deudas={deudas} setDeudas={setDeudas} setMovimientos={setMovimientos} cuentas={cuentas} />
+        <Deudas deudas={deudas} setDeudas={setDeudas} movimientos={movimientos} setMovimientos={setMovimientos} cuentas={cuentas} />
       </div>
     );
   }
