@@ -108,6 +108,11 @@ export async function fetchPropio(nombreColeccion, uid) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+// ── VERSIÓN DE LA APP ──
+// Sale de package.json, inyectada por vite.config.js. "dev" solo aparecería
+// si alguien monta el bundle sin pasar por Vite.
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION || "dev";
+
 // ── CATEGORÍAS ──
 // Ya no son un array fijo: viven en Firestore (colección `categorias`,
 // editable desde el tab Conf) para que el usuario las personalice. Estos
@@ -346,6 +351,7 @@ export const LoaderInteractivo = () => (
       ))}
     </div>
     <span style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: 'var(--mid)' }}>Cargando tus finanzas...</span>
+    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--mid)', opacity: 0.6, letterSpacing: 0.4 }}>v{APP_VERSION}</span>
   </div>
 );
 

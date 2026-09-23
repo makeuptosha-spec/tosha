@@ -14,7 +14,11 @@ App personal de control financiero — React + Vite + Firebase.
 
 - React 19 + Vite
 - Firebase (Auth + Firestore + Hosting)
-- Groq Vision (`meta-llama/llama-4-scout-17b-16e-instruct`) para lectura de recibos
+- Groq para lectura de recibos y dictado por voz — los modelos vigentes viven en `GROQ_MODELO_VISION` / `GROQ_MODELO_TEXTO` (`src/utils.jsx`), porque Groq retira modelos viejos sin aviso
+
+## Versión
+
+La versión corre desde `version` en `package.json`, `vite.config.js` la inyecta al bundle y la pantalla de carga la muestra abajo del texto de "Cargando tus finanzas...". Cada PR la sube antes de mergear (`fix:` sube el patch, `feat:` el minor) y deja su entrada en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Desarrollo local
 
