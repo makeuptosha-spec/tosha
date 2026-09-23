@@ -2,8 +2,9 @@ import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, Icon, ProgressBar, HOGAR_ID, iconoCuenta, calcular4x1000 } from "../utils.jsx";
+import MigracionDesembolsoPrestamos from "./MigracionDesembolsoPrestamos.jsx";
 
-export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
+export default function Deudas({ deudas, setDeudas, movimientos, setMovimientos, cuentas }) {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [deudaAEliminar, setDeudaAEliminar] = useState(null);
@@ -160,6 +161,8 @@ export default function Deudas({ deudas, setDeudas, setMovimientos, cuentas }) {
           {toast.msg}
         </div>
       )}
+
+      <MigracionDesembolsoPrestamos deudas={deudas} setDeudas={setDeudas} movimientos={movimientos} setMovimientos={setMovimientos} cuentas={cuentas} />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div style={{ background: "var(--danger-bg)", borderRadius: 18, padding: 16, border: "1px solid var(--danger-border)" }}>
