@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta, aplica4x1000, calcular4x1000, getMoneda, mesActual, sumarMes, fmtMes } from "../utils.jsx";
+import Presupuestos from "./Presupuestos.jsx";
+import MetasAhorro from "./MetasAhorro.jsx";
 
 export const calcularSaldo = (cuenta, movimientos) => {
   let saldo = Number(cuenta.saldoInicial) || 0;
@@ -81,7 +83,8 @@ export const diasHasta = (diaMes) => {
   return Number(diaMes) - hoy.getDate();
 };
 
-export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimientos }) {
+export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimientos, presupuestos, setPresupuestos, metas, setMetas, categorias }) {
+  const [vista, setVista] = useState("cuentas");
   const [mostrarForm, setMostrarForm] = useState(false);
   const [mostrarTransferencia, setMostrarTransferencia] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
@@ -301,8 +304,45 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
     finally { setGuardandoAjuste(false); }
   };
 
+  // Presupuestos y metas viven acá adentro en vez de tener tab propio: el nav
+  // se quedó en cinco items a propósito, y aportar o retirar de una meta es
+  // plata que sale o entra de una cuenta, así que es el mismo territorio.
+  const toggleVistas = (
+    <div style={{ display: "flex", gap: 6, background: "var(--white)", padding: 6, borderRadius: 14, border: "1px solid var(--border)" }}>
+      {[
+        { id: "cuentas", label: "💳 Cuentas" },
+        { id: "presupuestos", label: "🎯 Presupuestos" },
+        { id: "ahorro", label: "💰 Ahorro" },
+      ].map(v => (
+        <button key={v.id} onClick={() => setVista(v.id)}
+          style={{ flex: 1, background: vista === v.id ? "linear-gradient(135deg, var(--primary-deep), var(--primary))" : "transparent", color: vista === v.id ? "#fff" : "var(--mid)", border: "none", borderRadius: 10, padding: "10px 6px", fontSize: 12, fontWeight: 700 }}>
+          {v.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (vista === "presupuestos") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {toggleVistas}
+        <Presupuestos presupuestos={presupuestos} setPresupuestos={setPresupuestos} movimientos={movimientos} categorias={categorias} />
+      </div>
+    );
+  }
+
+  if (vista === "ahorro") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {toggleVistas}
+        <MetasAhorro metas={metas} setMetas={setMetas} cuentas={cuentas} setMovimientos={setMovimientos} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {toggleVistas}
       {toast && (
         <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.tipo === "ok" ? "var(--ink)" : toast.tipo === "warn" ? "var(--warn)" : "var(--danger)", color: "#fff", padding: "10px 20px", borderRadius: 100, fontSize: 13, zIndex: 9999, boxShadow: "var(--shadow-lg)", whiteSpace: "nowrap" }}>
           {toast.msg}

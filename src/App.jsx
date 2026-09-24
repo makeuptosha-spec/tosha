@@ -28,6 +28,8 @@ export default function App() {
   const [pagosFactura, setPagosFactura] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [deudas, setDeudas] = useState([]);
+  const [presupuestos, setPresupuestos] = useState([]);
+  const [metas, setMetas] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -41,12 +43,14 @@ export default function App() {
     const fetchData = async () => {
       try {
         const uid = usuario.uid;
-        const [cuentasP, movP, facP, pagosP, deudasP, categoriasP] = await Promise.all([
+        const [cuentasP, movP, facP, pagosP, deudasP, presP, metasP, categoriasP] = await Promise.all([
           fetchPropio("cuentas", uid),
           fetchPropio("movimientos", uid),
           fetchPropio("facturasRecurrentes", uid),
           fetchPropio("pagosFactura", uid),
           fetchPropio("deudas", uid),
+          fetchPropio("presupuestos", uid),
+          fetchPropio("metas", uid),
           asegurarCategorias(uid),
           sincronizarConfiguracion(uid),
         ]);
@@ -56,6 +60,8 @@ export default function App() {
         setFacturasRecurrentes(facP);
         setPagosFactura([...pagosP, ...pagosCongelados]);
         setDeudas(deudasP);
+        setPresupuestos(presP);
+        setMetas(metasP);
         setCategorias(categoriasP);
       } catch (error) {
         console.error(error);
@@ -127,9 +133,9 @@ export default function App() {
             </div>
           </div>
 
-          {tab === "inicio" && <Inicio cuentas={cuentas} movimientos={movimientos} facturasRecurrentes={facturasRecurrentes} pagosFactura={pagosFactura} deudas={deudas} />}
+          {tab === "inicio" && <Inicio cuentas={cuentas} movimientos={movimientos} facturasRecurrentes={facturasRecurrentes} pagosFactura={pagosFactura} deudas={deudas} presupuestos={presupuestos} metas={metas} />}
           {tab === "movimientos" && <Movimientos movimientos={movimientos} setMovimientos={setMovimientos} cuentas={cuentas} categorias={categorias} />}
-          {tab === "cuentas" && <Cuentas cuentas={cuentas} setCuentas={setCuentas} movimientos={movimientos} setMovimientos={setMovimientos} />}
+          {tab === "cuentas" && <Cuentas cuentas={cuentas} setCuentas={setCuentas} movimientos={movimientos} setMovimientos={setMovimientos} presupuestos={presupuestos} setPresupuestos={setPresupuestos} metas={metas} setMetas={setMetas} categorias={categorias} />}
           {tab === "facturas" && <Facturas facturasRecurrentes={facturasRecurrentes} setFacturasRecurrentes={setFacturasRecurrentes} pagosFactura={pagosFactura} setPagosFactura={setPagosFactura} movimientos={movimientos} setMovimientos={setMovimientos} cuentas={cuentas} deudas={deudas} setDeudas={setDeudas} categorias={categorias} />}
           {tab === "conf" && <Conf categorias={categorias} setCategorias={setCategorias} />}
         </div>

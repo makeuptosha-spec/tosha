@@ -12,6 +12,13 @@ Cada PR que se mergea sube la versión antes de mergear:
 
 Se toca `package.json` y se agrega la entrada acá, en el mismo commit del PR.
 
+## 1.3.0 — 2026-09-23
+
+- **Vuelven Metas de ahorro y Presupuestos.** Se habían borrado en el PR #52 junto con el tab Metas; los datos seguían en Firestore pero ninguna pantalla los leía. Ahora viven dentro de **Cuentas**, con un selector de tres vistas: `💳 Cuentas · 🎯 Presupuestos · 💰 Ahorro`. El nav sigue en cinco tabs.
+- **Metas**: nombre, monto objetivo y fecha, con barra de progreso. Aportar crea un gasto (con 4x1000 si la cuenta está gravada) y retirar un ingreso, siempre contra la cuenta que elijas.
+- **Presupuestos**: límite mensual por categoría de gasto, con aviso al pasar el 80% y al superar el límite. Las categorías salen de las tuyas del tab Conf (antes era una lista fija en código).
+- Inicio recupera sus dos bloques: **Ahorro total** (con la meta más cerca de cumplirse) y **Presupuestos cerca del límite** (los que van al 70% o más).
+
 ## 1.2.0 — 2026-09-23
 
 - **Abonos que pagan de más ya no pierden plata.** Si prestaste $100 y te pagan $120, la diferencia dejaba de existir: el abono se recortaba al saldo y la cuenta solo recibía $100. Ahora el modal avisa y te deja elegir: registrar la diferencia como ganancia (entra igual a la cuenta, como movimiento aparte "Interés recibido") o dejarla afuera porque fue un error de digitación.
