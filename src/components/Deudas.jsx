@@ -12,6 +12,7 @@ export default function Deudas({ deudas, setDeudas, movimientos, setMovimientos,
   const [montoAbono, setMontoAbono] = useState("");
   const [cuentaAbono, setCuentaAbono] = useState("");
   const [guardandoAbono, setGuardandoAbono] = useState(false);
+  const [destinoExcedente, setDestinoExcedente] = useState("ganancia");
   const [guardandoDeuda, setGuardandoDeuda] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -128,17 +129,22 @@ export default function Deudas({ deudas, setDeudas, movimientos, setMovimientos,
     } catch { showToast("❌ Error al eliminar", "danger"); }
   };
 
-  const abrirAbono = (d) => { setAbonando(d); setMontoAbono(""); setCuentaAbono(d.cuentaId); };
+  const abrirAbono = (d) => { setAbonando(d); setMontoAbono(""); setCuentaAbono(d.cuentaId); setDestinoExcedente("ganancia"); };
 
   const confirmarAbono = async () => {
     if (!abonando || !montoAbono || !cuentaAbono) return;
     setGuardandoAbono(true);
     try {
       const fecha = new Date().toISOString();
-      const abono = Math.min(Number(montoAbono), Number(abonando.saldoRestante));
       const esDebo = abonando.tipo === "debo";
+      const abono = Math.min(Number(montoAbono), Number(abonando.saldoRestante));
+      // Lo que pasa del saldo no es capital: es interés, propina o lo que sea
+      // que se pactó de más. Antes se recortaba con un Math.min y esa plata
+      // nunca tocaba la cuenta, aunque en la vida real sí entró (o salió).
+      const excedente = destinoExcedente === "ganancia" ? Math.max(0, Number(montoAbono) - Number(abonando.saldoRestante)) : 0;
+      const cuenta = cuentas.find(c => c.id === cuentaAbono);
 
-      const gmf = esDebo ? calcular4x1000(cuentas.find(c => c.id === cuentaAbono), abono) : 0;
+      const gmf = esDebo ? calcular4x1000(cuenta, abono) : 0;
       const nuevoMovimiento = {
         tipo: esDebo ? "gasto" : "ingreso", monto: abono, categoria: esDebo ? "Deudas" : "Préstamo",
         cuentaId: cuentaAbono, descripcion: `Abono: ${abonando.nombre}`, fecha, deudaId: abonando.id,
@@ -146,14 +152,36 @@ export default function Deudas({ deudas, setDeudas, movimientos, setMovimientos,
       };
       if (gmf) nuevoMovimiento.gmf4x1000 = gmf;
       const movRef = await addDoc(collection(db, "movimientos"), nuevoMovimiento);
-      setMovimientos(m => [{ id: movRef.id, ...nuevoMovimiento }, ...m]);
+      const nuevos = [{ id: movRef.id, ...nuevoMovimiento }];
+
+      // El excedente va como movimiento aparte para que se pueda leer en
+      // Movimientos qué fue capital devuelto y qué fue ganancia (o interés
+      // pagado), en vez de quedar sumado dentro del abono.
+      if (excedente > 0) {
+        const gmfExtra = esDebo ? calcular4x1000(cuenta, excedente) : 0;
+        const movExcedente = {
+          tipo: esDebo ? "gasto" : "ingreso", monto: excedente, categoria: esDebo ? "Deudas" : "Préstamo",
+          cuentaId: cuentaAbono, descripcion: `${esDebo ? "Interés pagado" : "Interés recibido"}: ${abonando.nombre}`,
+          fecha, deudaId: abonando.id, esExcedenteDeuda: true,
+          hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
+        };
+        if (gmfExtra) movExcedente.gmf4x1000 = gmfExtra;
+        const refExtra = await addDoc(collection(db, "movimientos"), movExcedente);
+        nuevos.push({ id: refExtra.id, ...movExcedente });
+      }
+      setMovimientos(m => [...nuevos, ...m]);
 
       const nuevoSaldo = Math.max(0, Number(abonando.saldoRestante) - abono);
       const nuevoHistorial = [...(abonando.historialPagos || []), { fecha, monto: abono, movimientoId: movRef.id }];
-      await updateDoc(doc(db, "deudas", abonando.id), { saldoRestante: nuevoSaldo, historialPagos: nuevoHistorial });
-      setDeudas(d => d.map(x => x.id === abonando.id ? { ...x, saldoRestante: nuevoSaldo, historialPagos: nuevoHistorial } : x));
+      const cambios = { saldoRestante: nuevoSaldo, historialPagos: nuevoHistorial };
+      // El interés se acumula aparte del capital: el progreso de la deuda
+      // sigue midiéndose contra el monto prestado, no contra lo cobrado.
+      if (excedente > 0) cambios.interesAcumulado = Number(abonando.interesAcumulado || 0) + excedente;
+      await updateDoc(doc(db, "deudas", abonando.id), cambios);
+      setDeudas(d => d.map(x => x.id === abonando.id ? { ...x, ...cambios } : x));
 
-      showToast(nuevoSaldo === 0 ? `🎉 ${abonando.nombre} saldada por completo` : "✅ Abono registrado");
+      const extra = excedente > 0 ? ` · ${esDebo ? "interés pagado" : "ganancia"} ${fmt(excedente)}` : "";
+      showToast(nuevoSaldo === 0 ? `🎉 ${abonando.nombre} saldada por completo${extra}` : `✅ Abono registrado${extra}`);
       setAbonando(null); setMontoAbono(""); setCuentaAbono("");
     } catch { showToast("❌ Error al registrar abono", "danger"); }
     finally { setGuardandoAbono(false); }
@@ -257,6 +285,26 @@ export default function Deudas({ deudas, setDeudas, movimientos, setMovimientos,
                   {cuentas.map(c => <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>)}
                 </select>
               </div>
+              {Number(montoAbono || 0) > Number(abonando.saldoRestante) && (
+                <div style={{ background: "var(--warn-bg)", border: "1px solid var(--warn-border)", borderRadius: 14, padding: "12px 14px" }}>
+                  <p style={{ fontSize: 12, color: "var(--warn)", fontWeight: 700, margin: 0 }}>
+                    {abonando.tipo === "debo" ? "Estás pagando" : "Te están pagando"} {fmt(Number(montoAbono) - Number(abonando.saldoRestante))} de más
+                  </p>
+                  <p style={{ fontSize: 11, color: "var(--warn)", margin: "4px 0 10px", opacity: 0.85 }}>
+                    La deuda queda saldada con {fmt(abonando.saldoRestante)}. ¿Qué hacemos con la diferencia?
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <button onClick={() => setDestinoExcedente("ganancia")} style={{ textAlign: "left", background: destinoExcedente === "ganancia" ? "var(--white)" : "transparent", border: destinoExcedente === "ganancia" ? "1.5px solid var(--warn)" : "1px solid var(--warn-border)", borderRadius: 10, padding: "9px 12px", fontSize: 11, fontWeight: 600, color: "var(--dark)" }}>
+                      {abonando.tipo === "debo"
+                        ? "Es interés · sale igual de la cuenta, como movimiento aparte"
+                        : "Es ganancia · entra igual a la cuenta, como movimiento aparte"}
+                    </button>
+                    <button onClick={() => setDestinoExcedente("solo-deuda")} style={{ textAlign: "left", background: destinoExcedente === "solo-deuda" ? "var(--white)" : "transparent", border: destinoExcedente === "solo-deuda" ? "1.5px solid var(--warn)" : "1px solid var(--warn-border)", borderRadius: 10, padding: "9px 12px", fontSize: 11, fontWeight: 600, color: "var(--dark)" }}>
+                      Me equivoqué · registrar solo {fmt(abonando.saldoRestante)}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={() => setAbonando(null)} style={{ flex: 1, background: "var(--border)", color: "var(--dark)", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>Cancelar</button>
@@ -307,7 +355,10 @@ export default function Deudas({ deudas, setDeudas, movimientos, setMovimientos,
               <p style={{ fontSize: 16, fontWeight: 800, color: d.tipo === "debo" ? "var(--danger)" : "var(--primary-deep)", margin: 0, flexShrink: 0 }}>{fmt(d.saldoRestante)}</p>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: "var(--mid)" }}>{fmt(d.pagado)} pagado de {fmt(d.montoPrincipal)}</span>
+              <span style={{ fontSize: 11, color: "var(--mid)" }}>
+                {fmt(d.pagado)} pagado de {fmt(d.montoPrincipal)}
+                {d.interesAcumulado > 0 ? ` · ${d.tipo === "debo" ? "interés" : "ganancia"} ${fmt(d.interesAcumulado)}` : ""}
+              </span>
               <span style={{ fontSize: 11, fontWeight: 700, color: "var(--primary-deep)" }}>{d.pct}%</span>
             </div>
             <ProgressBar pct={d.pct} color="var(--primary)" bg="var(--bg)" height={8} />

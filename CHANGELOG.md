@@ -12,6 +12,12 @@ Cada PR que se mergea sube la versión antes de mergear:
 
 Se toca `package.json` y se agrega la entrada acá, en el mismo commit del PR.
 
+## 1.2.0 — 2026-09-23
+
+- **Abonos que pagan de más ya no pierden plata.** Si prestaste $100 y te pagan $120, la diferencia dejaba de existir: el abono se recortaba al saldo y la cuenta solo recibía $100. Ahora el modal avisa y te deja elegir: registrar la diferencia como ganancia (entra igual a la cuenta, como movimiento aparte "Interés recibido") o dejarla afuera porque fue un error de digitación.
+- Mismo caso al revés: si pagás de más una deuda tuya, la diferencia sale de la cuenta como "Interés pagado" (con 4x1000 si la cuenta está gravada).
+- El interés se acumula en la deuda (`interesAcumulado`) aparte del capital, y se muestra en la tarjeta del préstamo. El progreso sigue midiéndose contra el monto prestado.
+
 ## 1.1.1 — 2026-09-23
 
 - **El panel de préstamos viejos ya no insiste.** Antes no había forma de decirle "este está bien así": un préstamo que no querías corregir volvía a aparecer cada vez que abrías la app. Ahora hay botón **"Están bien, no preguntar más"**, y los que dejes desmarcados al corregir se dan por buenos (campo `sinDesembolso` en la deuda).
