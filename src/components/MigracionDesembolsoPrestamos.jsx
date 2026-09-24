@@ -30,7 +30,7 @@ export default function MigracionDesembolsoPrestamos({ deudas, setDeudas, movimi
 
   const candidatos = useMemo(() =>
     deudas
-      .filter(d => d.activa !== false && !d.movimientoOrigenId && cuentas.some(c => c.id === d.cuentaId))
+      .filter(d => d.activa !== false && !d.movimientoOrigenId && !d.sinDesembolso && cuentas.some(c => c.id === d.cuentaId))
       .map(d => {
         const esDebo = d.tipo === "debo";
         const monto = Number(d.montoPrincipal);
@@ -54,6 +54,29 @@ export default function MigracionDesembolsoPrestamos({ deudas, setDeudas, movimi
   const marcado = (c) => override[c.id] ?? !c.yaRegistrado;
   const alternar = (c) => setOverride(o => ({ ...o, [c.id]: !marcado(c) }));
   const elegidos = candidatos.filter(marcado);
+
+  // Marca deudas como "no necesitan desembolso" para que el panel no vuelva a
+  // preguntar por ellas cada vez que se abre la app. Es la única salida que
+  // faltaba: antes, un préstamo que el usuario no quería corregir seguía
+  // apareciendo para siempre.
+  const descartar = async (lista) => {
+    const ids = [];
+    for (const d of lista) {
+      try {
+        await updateDoc(doc(db, "deudas", d.id), { sinDesembolso: true });
+        ids.push(d.id);
+      } catch { /* si falla, vuelve a aparecer la próxima vez */ }
+    }
+    if (ids.length) setDeudas(ds => ds.map(x => ids.includes(x.id) ? { ...x, sinDesembolso: true } : x));
+    return ids.length;
+  };
+
+  const descartarTodos = async () => {
+    setMigrando(true);
+    const descartados = await descartar(candidatos);
+    setResultado({ creados: 0, fallidos: 0, omitidos: descartados });
+    setMigrando(false);
+  };
 
   const migrar = async () => {
     if (elegidos.length === 0) return;
@@ -95,7 +118,10 @@ export default function MigracionDesembolsoPrestamos({ deudas, setDeudas, movimi
       const e = enlaces.find(y => y.deudaId === x.id);
       return e ? { ...x, movimientoOrigenId: e.movId } : x;
     }));
-    setResultado({ creados: nuevos.length, fallidos, omitidos: candidatos.length - elegidos.length });
+    // Lo que el usuario dejó desmarcado es una decisión, no un pendiente:
+    // se marca como descartado para que el panel no lo vuelva a sacar.
+    const omitidos = await descartar(candidatos.filter(c => !marcado(c)));
+    setResultado({ creados: nuevos.length, fallidos, omitidos });
     setMigrando(false);
   };
 
@@ -108,7 +134,7 @@ export default function MigracionDesembolsoPrestamos({ deudas, setDeudas, movimi
               🔧 {candidatos.length} préstamo{candidatos.length === 1 ? "" : "s"} sin movimiento en la cuenta
             </p>
             <p style={{ fontSize: 11, color: "var(--warn)", margin: "4px 0 0", opacity: 0.85 }}>
-              Se registraron cuando la app todavía no descontaba el desembolso del saldo. Marcá los que quieras corregir y se crea el movimiento faltante con la fecha original. Los que ya parecen anotados a mano vienen desmarcados.
+              Se registraron cuando la app todavía no descontaba el desembolso del saldo. Marcá los que quieras corregir y se crea el movimiento faltante con la fecha original. Los que dejes desmarcados se dan por buenos y no se vuelven a preguntar.
             </p>
           </div>
 
@@ -135,14 +161,19 @@ export default function MigracionDesembolsoPrestamos({ deudas, setDeudas, movimi
             })}
           </div>
 
-          <button onClick={migrar} disabled={migrando || elegidos.length === 0} style={{ alignSelf: "flex-start", background: "var(--warn)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, fontWeight: 700, opacity: migrando || elegidos.length === 0 ? 0.6 : 1 }}>
-            {migrando ? "Creando movimientos…" : `Corregir ${elegidos.length} préstamo${elegidos.length === 1 ? "" : "s"}`}
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={migrar} disabled={migrando || elegidos.length === 0} style={{ background: "var(--warn)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, fontWeight: 700, opacity: migrando || elegidos.length === 0 ? 0.6 : 1 }}>
+              {migrando ? "Guardando…" : `Corregir ${elegidos.length} préstamo${elegidos.length === 1 ? "" : "s"}`}
+            </button>
+            <button onClick={descartarTodos} disabled={migrando} style={{ background: "transparent", color: "var(--warn)", border: "1px solid var(--warn-border)", borderRadius: 10, padding: "8px 16px", fontSize: 12, fontWeight: 700, opacity: migrando ? 0.6 : 1 }}>
+              Están bien, no preguntar más
+            </button>
+          </div>
         </>
       ) : resultado && (
         <p style={{ fontSize: 13, color: "var(--warn)", margin: 0 }}>
           ✅ Movimientos creados: {resultado.creados}
-          {resultado.omitidos > 0 ? ` · Dejados como estaban: ${resultado.omitidos}` : ""}
+          {resultado.omitidos > 0 ? ` · Dados por buenos: ${resultado.omitidos}` : ""}
           {resultado.fallidos > 0 ? ` · Con error: ${resultado.fallidos} (revisalos a mano)` : ""}
         </p>
       )}

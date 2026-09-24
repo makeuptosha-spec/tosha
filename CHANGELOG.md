@@ -12,6 +12,11 @@ Cada PR que se mergea sube la versión antes de mergear:
 
 Se toca `package.json` y se agrega la entrada acá, en el mismo commit del PR.
 
+## 1.1.1 — 2026-09-23
+
+- **El panel de préstamos viejos ya no insiste.** Antes no había forma de decirle "este está bien así": un préstamo que no querías corregir volvía a aparecer cada vez que abrías la app. Ahora hay botón **"Están bien, no preguntar más"**, y los que dejes desmarcados al corregir se dan por buenos (campo `sinDesembolso` en la deuda).
+- Registrar un préstamo con el toggle de desembolso apagado ya no lo deja como pendiente del panel: apagarlo significa que el movimiento ya existe, y así queda guardado.
+
 ## 1.1.0 — 2026-09-23
 
 - **Tarjetas de crédito, modelo completo.** Cada tarjeta muestra sus tres números separados: cupo total, deuda total (lo que debés hoy) y disponible (cupo − deuda). Cada gasto con la tarjeta sube la deuda total, como siempre.

@@ -74,6 +74,11 @@ export default function Deudas({ deudas, setDeudas, movimientos, setMovimientos,
         datos.saldoRestante = Number(form.montoPrincipal);
         datos.historialPagos = [];
         datos.fechaCreacion = new Date().toISOString();
+        // Apagar el toggle es decir "este préstamo ya está registrado". Va en
+        // el documento ANTES de crearlo: si no quedara guardado, el panel de
+        // migración lo tomaría como pendiente y preguntaría por él cada vez
+        // que se abre la app.
+        if (!form.afectaSaldo) datos.sinDesembolso = true;
         const ref = await addDoc(collection(db, "deudas"), datos);
 
         // Prestar o recibir un préstamo mueve plata de verdad: hasta ahora
