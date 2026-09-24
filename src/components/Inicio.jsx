@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { fmt, esEsteMes, hoyObj, StatCard, useTema, colorTema, parseFecha, iconoCuenta } from "../utils.jsx";
-import { calcularSaldo, calcularCuotaMensual, diasHasta } from "./Cuentas.jsx";
+import { calcularSaldo, deudaMesTarjeta, diasHasta } from "./Cuentas.jsx";
 import { estadoFactura } from "./Facturas.jsx";
 
 const HORA = new Date().getHours();
@@ -93,7 +93,7 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
       .map(c => ({
         ...c,
         deuda: Math.max(0, -c.saldo),
-        cuotaMensual: calcularCuotaMensual(c, movimientos),
+        cuotaMensual: deudaMesTarjeta(c, movimientos),
         diasCorte: diasHasta(c.fechaCorte),
         diasPago: diasHasta(c.fechaPago),
       })),
@@ -204,7 +204,7 @@ export default function Inicio({ cuentas, movimientos, facturasRecurrentes, pago
                     {c.diasCorte != null && c.diasPago != null && " · "}
                     {c.diasPago != null && <>Pago {c.diasPago < 0 ? `hace ${Math.abs(c.diasPago)}d` : c.diasPago === 0 ? "hoy" : `en ${c.diasPago}d`}</>}
                   </span>
-                  {c.cuotaMensual > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--dark)" }}>Cuota: {fmt(c.cuotaMensual)}</span>}
+                  {c.cuotaMensual > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--dark)" }}>Este mes: {fmt(c.cuotaMensual)}</span>}
                 </div>
               </div>
             ))}

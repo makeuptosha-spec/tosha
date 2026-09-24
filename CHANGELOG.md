@@ -12,6 +12,12 @@ Cada PR que se mergea sube la versión antes de mergear:
 
 Se toca `package.json` y se agrega la entrada acá, en el mismo commit del PR.
 
+## 1.1.0 — 2026-09-23
+
+- **Tarjetas de crédito, modelo completo.** Cada tarjeta muestra sus tres números separados: cupo total, deuda total (lo que debés hoy) y disponible (cupo − deuda). Cada gasto con la tarjeta sube la deuda total, como siempre.
+- **Deuda del mes y pago del ciclo.** Nueva "deuda de este mes" declarada por vos (campo `deudaMesActual`). Al pagarla, el monto sale de la cuenta que elijas, la deuda del mes baja a cero y la app te pregunta cuánto te cobran el mes siguiente. Si pagás de menos, queda el resto pendiente en vez de saltar de ciclo.
+- El campo viejo `cuotaMensualManual` queda migrado a `deudaMesActual` al guardar la tarjeta; mientras no declares el valor, se sigue estimando por las cuotas de tus compras y se muestra marcado como "(estimado)".
+
 ## 1.0.0 — 2026-09-23
 
 Línea base. Numera todo lo que ya estaba en producción (PR #1 al #58), que hasta acá se desplegó sin versión visible.

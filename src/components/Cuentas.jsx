@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta, aplica4x1000, calcular4x1000, getMoneda } from "../utils.jsx";
+import { fmt, fmtNum, parseNum, Icon, ProgressBar, TIPOS_CUENTA, HOGAR_ID, iconoCuenta, aplica4x1000, calcular4x1000, getMoneda, mesActual, sumarMes, fmtMes } from "../utils.jsx";
 
 export const calcularSaldo = (cuenta, movimientos) => {
   let saldo = Number(cuenta.saldoInicial) || 0;
@@ -60,6 +60,18 @@ export const calcularCuotaMensual = (cuenta, movimientos) => {
     }, 0);
 };
 
+// Lo que hay que pagarle a la tarjeta en el ciclo vigente ("lo que debo
+// este mes"), que no es lo mismo que la deuda total: la deuda total son
+// todas las compras sin pagar, y la del mes es lo que el banco cobra ahora.
+// Manda el valor que declaró el usuario (`deudaMesActual`, que se fija al
+// crear la tarjeta y se renueva cada vez que se paga); si nunca lo declaró,
+// se cae al estimado por cuotas para no mostrar la tarjeta en blanco.
+export const deudaMesTarjeta = (cuenta, movimientos) => {
+  if (cuenta.tipo !== "tarjeta_credito") return 0;
+  if (cuenta.deudaMesActual != null) return Math.max(0, Number(cuenta.deudaMesActual));
+  return calcularCuotaMensual(cuenta, movimientos);
+};
+
 // Días que faltan para el próximo día-del-mes dado (corte/pago de
 // tarjeta). Igual que se hace con diaVencimiento en Facturas: puede dar
 // negativo si ya pasó este mes.
@@ -78,9 +90,14 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
   const [saldoReal, setSaldoReal] = useState("");
   const [guardandoAjuste, setGuardandoAjuste] = useState(false);
   const [guardandoCuenta, setGuardandoCuenta] = useState(false);
+  const [pagandoTarjeta, setPagandoTarjeta] = useState(null);
+  const [pagoForm, setPagoForm] = useState({ cuentaOrigenId: "", monto: "" });
+  const [pasoPago, setPasoPago] = useState("pago");
+  const [deudaProximoMes, setDeudaProximoMes] = useState("");
+  const [guardandoPago, setGuardandoPago] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", fechaCorte: "", fechaPago: "", cuotaMensualManual: "", exento4x1000: false };
+  const formBase = { nombre: "", tipo: "efectivo", saldoInicial: "", cupoTotal: "", fechaCorte: "", fechaPago: "", deudaMesActual: "", exento4x1000: false };
   const [form, setForm] = useState(formBase);
 
   const transferBase = { cuentaId: "", cuentaDestinoId: "", monto: "", descripcion: "" };
@@ -108,7 +125,13 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       cupoTotal: esTarjeta ? Number(form.cupoTotal) : null,
       fechaCorte: esTarjeta && form.fechaCorte !== "" ? Number(form.fechaCorte) : null,
       fechaPago: esTarjeta && form.fechaPago !== "" ? Number(form.fechaPago) : null,
-      cuotaMensualManual: esTarjeta && form.cuotaMensualManual !== "" ? Number(form.cuotaMensualManual) : null,
+      // `deudaMesActual` es lo que el banco cobra en el ciclo vigente, dicho
+      // por el usuario. `cuotaMensualManual` era el campo viejo que hacía las
+      // veces de esto: al guardar una tarjeta se migra a null para no dejar
+      // dos fuentes de verdad peleando.
+      deudaMesActual: esTarjeta && form.deudaMesActual !== "" ? Number(form.deudaMesActual) : null,
+      periodoDeudaMes: esTarjeta && form.deudaMesActual !== "" ? mesActual() : null,
+      cuotaMensualManual: null,
       exento4x1000: esCuentaGravable ? !!form.exento4x1000 : false,
       activa: true, hogarId: HOGAR_ID, uid: auth.currentUser.uid
     };
@@ -143,7 +166,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       cupoTotal: c.cupoTotal != null ? String(c.cupoTotal) : "",
       fechaCorte: c.fechaCorte != null ? String(c.fechaCorte) : "",
       fechaPago: c.fechaPago != null ? String(c.fechaPago) : "",
-      cuotaMensualManual: c.cuotaMensualManual != null ? String(c.cuotaMensualManual) : "",
+      deudaMesActual: c.deudaMesActual != null ? String(c.deudaMesActual) : (c.cuotaMensualManual != null ? String(c.cuotaMensualManual) : ""),
       exento4x1000: !!c.exento4x1000,
     });
     setEditandoId(c.id); setMostrarForm(true);
@@ -190,10 +213,71 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
     setSaldoReal(String(Math.round(c.tipo === "tarjeta_credito" ? Math.max(0, -saldoActual) : saldoActual)));
   };
 
+  // Pagar la tarjeta es una transferencia (sale plata de una cuenta y baja la
+  // deuda de la tarjeta), pero además cierra el ciclo: deja la deuda del mes
+  // en cero y pregunta la del mes siguiente. Por eso tiene modal propio y no
+  // reusa el de transferencias.
   const abrirPagoTarjeta = (c) => {
-    setTransferForm({ ...transferBase, cuentaDestinoId: c.id });
-    setMostrarTransferencia(true);
+    const deudaMes = deudaMesTarjeta(c, movimientos);
+    const deudaTotal = Math.max(0, -calcularSaldo(c, movimientos));
+    const origen = cuentas.find(x => x.tipo !== "tarjeta_credito" && x.activa !== false);
+    setPagandoTarjeta(c);
+    setPasoPago("pago");
+    setDeudaProximoMes("");
+    setPagoForm({ cuentaOrigenId: origen?.id || "", monto: String(Math.round(deudaMes || deudaTotal)) });
     setMostrarForm(false);
+  };
+
+  const confirmarPagoTarjeta = async () => {
+    if (!pagandoTarjeta || !pagoForm.cuentaOrigenId || !pagoForm.monto) return showToast("⚠️ Elegí cuenta y monto", "warn");
+    setGuardandoPago(true);
+    try {
+      const monto = Number(pagoForm.monto);
+      const origen = cuentas.find(c => c.id === pagoForm.cuentaOrigenId);
+      const gmf = calcular4x1000(origen, monto);
+      const fecha = new Date().toISOString();
+      const mov = {
+        tipo: "transferencia", monto, cuentaId: pagoForm.cuentaOrigenId, cuentaDestinoId: pagandoTarjeta.id,
+        categoria: "Transferencia", descripcion: `Pago tarjeta: ${pagandoTarjeta.nombre}`,
+        esPagoTarjeta: true, fecha, hogarId: HOGAR_ID, uid: auth.currentUser.uid, fechaCreacion: fecha
+      };
+      if (gmf) mov.gmf4x1000 = gmf;
+      const ref = await addDoc(collection(db, "movimientos"), mov);
+      setMovimientos(m => [{ id: ref.id, ...mov }, ...m]);
+
+      // Lo pagado baja de la deuda del mes. Si el pago no la cubre entera,
+      // queda el resto pendiente en vez de saltar al ciclo siguiente.
+      const deudaMes = deudaMesTarjeta(pagandoTarjeta, movimientos);
+      const restante = Math.max(0, Math.round(deudaMes - monto));
+      const cambios = { deudaMesActual: restante, periodoDeudaMes: mesActual() };
+      await updateDoc(doc(db, "cuentas", pagandoTarjeta.id), cambios);
+      setCuentas(cs => cs.map(x => x.id === pagandoTarjeta.id ? { ...x, ...cambios } : x));
+
+      if (restante > 0) {
+        showToast(`✅ Pago registrado · quedan ${fmt(restante)} de este mes`);
+        setPagandoTarjeta(null);
+      } else {
+        setPagandoTarjeta(t => ({ ...t, ...cambios }));
+        setPasoPago("siguiente");
+      }
+    } catch { showToast("❌ Error al registrar el pago", "danger"); }
+    finally { setGuardandoPago(false); }
+  };
+
+  const guardarDeudaProximoMes = async () => {
+    if (!pagandoTarjeta) return;
+    setGuardandoPago(true);
+    try {
+      const cambios = {
+        deudaMesActual: deudaProximoMes === "" ? 0 : Number(deudaProximoMes),
+        periodoDeudaMes: sumarMes(mesActual(), 1)
+      };
+      await updateDoc(doc(db, "cuentas", pagandoTarjeta.id), cambios);
+      setCuentas(cs => cs.map(x => x.id === pagandoTarjeta.id ? { ...x, ...cambios } : x));
+      showToast(deudaProximoMes === "" ? "Listo, lo cargás cuando llegue el extracto" : `✅ Mes siguiente: ${fmt(Number(deudaProximoMes))}`);
+      setPagandoTarjeta(null); setDeudaProximoMes("");
+    } catch { showToast("❌ Error al guardar", "danger"); }
+    finally { setGuardandoPago(false); }
   };
 
   const confirmarAjuste = async () => {
@@ -323,8 +407,9 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuota de este mes (opcional)</label>
-                <input type="text" value={form.cuotaMensualManual ? fmtNum(form.cuotaMensualManual) : ""} onChange={e => setForm({ ...form, cuotaMensualManual: parseNum(e.target.value) })} placeholder="La calculamos por vos, o poné la tuya" />
+                <label style={{ fontSize: 11, color: "var(--mid)" }}>Deuda de este mes (lo que te cobran ahora)</label>
+                <input type="text" value={form.deudaMesActual ? fmtNum(form.deudaMesActual) : ""} onChange={e => setForm({ ...form, deudaMesActual: parseNum(e.target.value) })} placeholder="Lo del extracto vigente" />
+                <p style={{ fontSize: 10, color: "var(--mid)", margin: "4px 0 0" }}>Al pagarla te preguntamos cuánto queda para el mes siguiente. Si lo dejás vacío, se estima con las cuotas de tus compras.</p>
               </div>
             </>
           )}
@@ -346,6 +431,62 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
       )}
 
       {/* MODAL AJUSTAR SALDO */}
+      {pagandoTarjeta && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="animate" style={{ background: "var(--white)", padding: 26, borderRadius: 24, width: "90%", maxWidth: 400, boxShadow: "var(--shadow-lg)" }}>
+            {pasoPago === "pago" ? (
+              <>
+                <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 6 }}>Pagar "{pagandoTarjeta.nombre}"</h3>
+                <p style={{ fontSize: 12, color: "var(--mid)", marginBottom: 16 }}>
+                  Deuda total: <strong>{fmt(Math.max(0, -calcularSaldo(pagandoTarjeta, movimientos)))}</strong> · Este mes: <strong>{fmt(deudaMesTarjeta(pagandoTarjeta, movimientos))}</strong>
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 11, color: "var(--mid)" }}>Cuenta desde donde pagás</label>
+                    <select value={pagoForm.cuentaOrigenId} onChange={e => setPagoForm({ ...pagoForm, cuentaOrigenId: e.target.value })}>
+                      <option value="">Selecciona…</option>
+                      {cuentas.filter(c => c.tipo !== "tarjeta_credito" && c.activa !== false).map(c => (
+                        <option key={c.id} value={c.id}>{iconoCuenta(c)} {c.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: "var(--mid)" }}>Monto a pagar</label>
+                    <input type="text" value={pagoForm.monto ? fmtNum(pagoForm.monto) : ""} onChange={e => setPagoForm({ ...pagoForm, monto: parseNum(e.target.value) })} autoFocus />
+                    <p style={{ fontSize: 10, color: "var(--mid)", margin: "4px 0 0" }}>
+                      Sale de la cuenta elegida y baja la deuda de la tarjeta. Si pagás menos que la deuda del mes, el resto queda pendiente.
+                    </p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                  <button onClick={() => setPagandoTarjeta(null)} style={{ flex: 1, background: "var(--border)", color: "var(--dark)", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>Cancelar</button>
+                  <button onClick={confirmarPagoTarjeta} disabled={guardandoPago} style={{ flex: 1, background: "var(--success)", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600, opacity: guardandoPago ? 0.6 : 1 }}>
+                    {guardandoPago ? "Pagando…" : "💳 Pagar"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 style={{ fontSize: 18, fontFamily: "'Fraunces', serif", color: "var(--dark)", marginBottom: 6 }}>Este mes queda en cero 🎉</h3>
+                <p style={{ fontSize: 12, color: "var(--mid)", marginBottom: 16 }}>
+                  ¿Cuánto te cobran en {fmtMes(sumarMes(mesActual(), 1))}? Lo podés dejar vacío y cargarlo cuando llegue el extracto.
+                </p>
+                <div>
+                  <label style={{ fontSize: 11, color: "var(--mid)" }}>Deuda del mes siguiente</label>
+                  <input type="text" value={deudaProximoMes ? fmtNum(deudaProximoMes) : ""} onChange={e => setDeudaProximoMes(parseNum(e.target.value))} autoFocus />
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                  <button onClick={() => { setDeudaProximoMes(""); guardarDeudaProximoMes(); }} disabled={guardandoPago} style={{ flex: 1, background: "var(--border)", color: "var(--dark)", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600 }}>Lo pongo después</button>
+                  <button onClick={guardarDeudaProximoMes} disabled={guardandoPago} style={{ flex: 1, background: "linear-gradient(135deg, var(--primary-deep), var(--primary))", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontWeight: 600, opacity: guardandoPago ? 0.6 : 1 }}>
+                    {guardandoPago ? "Guardando…" : "Guardar"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {ajustando && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div className="animate" style={{ background: "var(--white)", padding: 26, borderRadius: 24, width: "90%", maxWidth: 380, boxShadow: "var(--shadow-lg)" }}>
@@ -397,7 +538,7 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
           const cupo = esTC ? Number(c.cupoTotal) || 0 : 0;
           const disponible = esTC ? Math.max(0, cupo - deuda) : 0;
           const pctUsado = esTC && cupo ? Math.min(100, (deuda / cupo) * 100) : 0;
-          const cuotaMensual = esTC ? calcularCuotaMensual(c, movimientos) : 0;
+          const deudaMes = esTC ? deudaMesTarjeta(c, movimientos) : 0;
           return (
             <div key={c.id} className="animate" style={{ background: "var(--white)", borderRadius: 18, padding: "16px 18px", border: "1px solid var(--border)", boxShadow: "var(--shadow)", display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -427,9 +568,28 @@ export default function Cuentas({ cuentas, setCuentas, movimientos, setMovimient
               {esTC && (
                 <div>
                   <ProgressBar pct={pctUsado} color={pctUsado > 80 ? "var(--danger)" : "var(--primary)"} bg="var(--border)" height={8} />
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: "var(--mid)", flexWrap: "wrap", gap: 6 }}>
-                    <span>Disponible: <strong style={{ color: "var(--dark)" }}>{fmt(disponible)}</strong> de {fmt(cupo)}</span>
-                    {cuotaMensual > 0 && <span>Cuota este mes: <strong style={{ color: "var(--dark)" }}>{fmt(cuotaMensual)}</strong></span>}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 10 }}>
+                    <div>
+                      <p style={{ fontSize: 10, color: "var(--mid)", margin: 0 }}>Cupo total</p>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", margin: "2px 0 0" }}>{fmt(cupo)}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 10, color: "var(--mid)", margin: 0 }}>Deuda total</p>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)", margin: "2px 0 0" }}>{fmt(deuda)}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 10, color: "var(--mid)", margin: 0 }}>Disponible</p>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--success)", margin: "2px 0 0" }}>{fmt(disponible)}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, background: "var(--bg)", borderRadius: 12, padding: "8px 12px", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, color: "var(--mid)" }}>
+                      Este mes: <strong style={{ color: deudaMes > 0 ? "var(--dark)" : "var(--mid)" }}>{deudaMes > 0 ? fmt(deudaMes) : "sin deuda"}</strong>
+                      {c.deudaMesActual == null && deudaMes > 0 ? " (estimado)" : ""}
+                    </span>
+                    {deudaMes > 0 && (
+                      <button onClick={() => abrirPagoTarjeta(c)} style={{ background: "var(--success)", color: "#fff", border: "none", borderRadius: 10, padding: "6px 14px", fontSize: 11, fontWeight: 700 }}>💳 Pagar este mes</button>
+                    )}
                   </div>
                   {(c.fechaCorte || c.fechaPago) && (
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 11, color: "var(--mid)", flexWrap: "wrap", gap: 6 }}>
